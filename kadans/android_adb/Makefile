@@ -50,7 +50,7 @@ repo-init:
 ifndef GITHUB_TOKEN
 	$(error GITHUB_TOKEN is not set — add it to $(REPO_ROOT)/.env)
 endif
-	$(PYTHON) $(REPO_ROOT)/.github-init.py "$(GITHUB_TOKEN)" "$(GITHUB_REPO)" "$(REPO_ROOT)"
+	$(PYTHON) "$(REPO_ROOT)/.github-init.py" "$(GITHUB_TOKEN)" "$(GITHUB_REPO)"
 
 # Tag, push, and publish in one step — Usage: make release VERSION=0.2.0
 release:

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import json, subprocess, sys, urllib.request, urllib.error
+import json, os, subprocess, sys, urllib.request, urllib.error
 
-token, repo_name, repo_root = sys.argv[1], sys.argv[2], sys.argv[3]
+token, repo_name = sys.argv[1], sys.argv[2]
+repo_root = os.path.dirname(os.path.abspath(__file__))
 headers = {"Authorization": f"token {token}", "User-Agent": "ansible-collections", "Content-Type": "application/json"}
 
 req = urllib.request.Request("https://api.github.com/user", headers=headers)
