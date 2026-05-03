@@ -9,7 +9,7 @@ GALAXY      := $(VENV)/bin/ansible-galaxy
 ANSIBLETEST := $(VENV)/bin/ansible-test
 COLLECTION  := $(shell pwd)
 INSTALL_PATH:= $(HOME)/.ansible/collections
-REPO_ROOT   := $(shell git -C "$(COLLECTION)" rev-parse --show-toplevel)
+REPO_ROOT   := $(abspath $(COLLECTION)/../..)
 GITHUB_REPO ?= ansible-collections
 
 export PATH := $(HOME)/.local/platform-tools:$(PATH)
