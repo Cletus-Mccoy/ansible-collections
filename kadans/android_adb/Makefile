@@ -18,7 +18,7 @@ export ANSIBLE_COLLECTIONS_PATH := $(INSTALL_PATH)
 # Current version from galaxy.yml
 VERSION := $(shell grep '^version:' galaxy.yml | awk '{print $$2}')
 
-.PHONY: install test test-unit test-integration clean build publish release repo-init
+.PHONY: install test test-unit test-integration clean build publish release
 
 install:
 	$(GALAXY) collection install "$(COLLECTION)" --force
@@ -44,13 +44,6 @@ ifndef GALAXY_TOKEN
 	$(error GALAXY_TOKEN is not set — add it to $(REPO_ROOT)/.env)
 endif
 	$(GALAXY) collection publish kadans-android_adb-$(VERSION).tar.gz --token $(GALAXY_TOKEN)
-
-# Create GitHub repo, set remote, and push — run once from repo root
-repo-init:
-ifndef GITHUB_TOKEN
-	$(error GITHUB_TOKEN is not set — add it to $(REPO_ROOT)/.env)
-endif
-	$(PYTHON) "$(REPO_ROOT)/.github-init.py" "$(GITHUB_TOKEN)" "$(GITHUB_REPO)"
 
 # Tag, push, and publish in one step — Usage: make release VERSION=0.2.0
 release:
