@@ -1,4 +1,0 @@
----
-# Copy this file to integration_config.yml and set your device's IP:port.
-# Find the port in Android Settings > Developer options > Wireless debugging.
-adb_device: "192.168.1.x:PORT"

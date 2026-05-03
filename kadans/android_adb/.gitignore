@@ -1,6 +1,0 @@
-tests/output/
-tests/integration/integration_config.yml
-*.tar.gz
-__pycache__/
-*.pyc
-.pytest_cache/
