@@ -1,0 +1,143 @@
+---
+- name: Check for adb in PATH
+  command: which adb
+  delegate_to: localhost
+  changed_when: false
+  failed_when: false
+  register: adb_in_path
+
+- name: Check for adb in ~/.local/platform-tools fallback
+  stat:
+    path: "{{ lookup('env', 'HOME') }}/.local/platform-tools/adb"
+  delegate_to: localhost
+  register: adb_local_stat
+
+- name: Fail if ADB is not found anywhere
+  fail:
+    msg: "ADB not found in PATH or ~/.local/platform-tools/. Install android-tools-adb or download platform-tools."
+  when: adb_in_path.rc != 0 and not adb_local_stat.stat.exists
+
+- name: Set adb_cmd fact
+  set_fact:
+    adb_cmd: >-
+      {{ adb_in_path.stdout | trim if adb_in_path.rc == 0
+         else lookup('env', 'HOME') + '/.local/platform-tools/adb' }}
+
+- name: Scan for open ADB wireless debugging port
+  command: >
+    python3 -c "
+    import socket, sys
+    host = sys.argv[1]
+    for port in range(37000, 45000):
+        try:
+            s = socket.create_connection((host, port), timeout=0.1)
+            s.close()
+            print(port)
+            break
+        except Exception:
+            pass
+    " {{ local_ip }}
+  delegate_to: localhost
+  changed_when: false
+  failed_when: false
+  register: adb_port_scan
+
+- name: Override adb_port with discovered port if found
+  set_fact:
+    adb_port: "{{ adb_port_scan.stdout | trim | int }}"
+  when: adb_port_scan.stdout | trim | regex_search('^[0-9]+$') is not none
+
+- name: Report discovered port
+  debug:
+    msg: "Port discovery: using {{ adb_port }}"
+
+- name: Connect to device via ADB over WiFi
+  command: "{{ adb_cmd }} connect {{ local_ip }}:{{ adb_port }}"
+  delegate_to: localhost
+  changed_when: false
+  register: adb_connect_result
+  ignore_errors: true
+
+- name: Fail if ADB connection was refused or timed out
+  fail:
+    msg: "Could not connect to {{ inventory_hostname }} at {{ local_ip }}:{{ adb_port }}. Output: {{ adb_connect_result.stdout }}"
+  when: >
+    adb_connect_result.rc != 0 or
+    'unable to connect' in (adb_connect_result.stdout | lower) or
+    'failed to connect' in (adb_connect_result.stdout | lower)
+
+- name: Confirm device is listed as connected
+  command: "{{ adb_cmd }} devices"
+  delegate_to: localhost
+  changed_when: false
+  register: adb_devices_list
+
+- name: Fail if device not in device list
+  fail:
+    msg: "Device {{ local_ip }}:{{ adb_port }} not found in 'adb devices'. Output: {{ adb_devices_list.stdout }}"
+  when: "local_ip ~ ':' ~ adb_port not in adb_devices_list.stdout"
+
+- name: Gather device properties (getprop)
+  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell getprop"
+  delegate_to: localhost
+  changed_when: false
+  register: adb_getprop
+
+- name: Parse key device properties into facts
+  set_fact:
+    android_device_info:
+      manufacturer: "{{ adb_getprop.stdout | regex_search('\\[ro\\.product\\.manufacturer\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      model:        "{{ adb_getprop.stdout | regex_search('\\[ro\\.product\\.model\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      brand:        "{{ adb_getprop.stdout | regex_search('\\[ro\\.product\\.brand\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      android_ver:  "{{ adb_getprop.stdout | regex_search('\\[ro\\.build\\.version\\.release\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      sdk_version:  "{{ adb_getprop.stdout | regex_search('\\[ro\\.build\\.version\\.sdk\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      build_id:     "{{ adb_getprop.stdout | regex_search('\\[ro\\.build\\.id\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      serial:       "{{ adb_getprop.stdout | regex_search('\\[ro\\.serialno\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      timezone:     "{{ adb_getprop.stdout | regex_search('\\[persist\\.sys\\.timezone\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+      locale:       "{{ adb_getprop.stdout | regex_search('\\[persist\\.sys\\.locale\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
+
+- name: Get installed user apps
+  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell pm list packages -3"
+  delegate_to: localhost
+  changed_when: false
+  register: adb_user_packages
+  when: not probe_include_system_apps | bool
+
+- name: Get all installed apps (user + system)
+  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell pm list packages"
+  delegate_to: localhost
+  changed_when: false
+  register: adb_all_packages
+  when: probe_include_system_apps | bool
+
+- name: Parse package list into fact
+  set_fact:
+    android_installed_apps: >-
+      {{
+        (probe_include_system_apps | bool) | ternary(
+          adb_all_packages.stdout,
+          adb_user_packages.stdout
+        ) | regex_findall('package:(.+)')
+      }}
+
+- name: Get available disk space
+  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell df /data"
+  delegate_to: localhost
+  changed_when: false
+  register: adb_disk
+
+- name: Display connection summary
+  debug:
+    msg:
+      - "=== Android Probe: {{ inventory_hostname }} ==="
+      - "  ADB target   : {{ local_ip }}:{{ adb_port }}"
+      - "  Manufacturer : {{ android_device_info.manufacturer }}"
+      - "  Model        : {{ android_device_info.model }}"
+      - "  Brand        : {{ android_device_info.brand }}"
+      - "  Android      : {{ android_device_info.android_ver }} (SDK {{ android_device_info.sdk_version }})"
+      - "  Build ID     : {{ android_device_info.build_id }}"
+      - "  Serial       : {{ android_device_info.serial }}"
+      - "  Timezone     : {{ android_device_info.timezone }}"
+      - "  Locale       : {{ android_device_info.locale }}"
+      - "  Apps found   : {{ android_installed_apps | length }} {{ probe_include_system_apps | bool | ternary('(all)', '(user-installed)') }}"
+      - "  Disk (/data) : {{ adb_disk.stdout_lines | last | default('n/a') }}"
