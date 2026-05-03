@@ -50,21 +50,7 @@ repo-init:
 ifndef GITHUB_TOKEN
 	$(error GITHUB_TOKEN is not set — add it to $(REPO_ROOT)/.env)
 endif
-	@GITHUB_USER=$$($(PYTHON) -c "\
-	import urllib.request, json; \
-	req = urllib.request.Request('https://api.github.com/user', \
-	  headers={'Authorization': 'token $(GITHUB_TOKEN)', 'User-Agent': 'ansible-collections'}); \
-	print(json.loads(urllib.request.urlopen(req).read())['login'])") && \
-	$(PYTHON) -c "\
-	import urllib.request, json; \
-	data = json.dumps({'name': '$(GITHUB_REPO)', 'description': 'Ansible collections by Kasper Daems', 'private': False}).encode(); \
-	req = urllib.request.Request('https://api.github.com/user/repos', data=data, \
-	  headers={'Authorization': 'token $(GITHUB_TOKEN)', 'Content-Type': 'application/json', 'User-Agent': 'ansible-collections'}); \
-	res = json.loads(urllib.request.urlopen(req).read()); \
-	print('Created: ' + res['html_url'])" && \
-	git -C "$(REPO_ROOT)" remote add origin https://$(GITHUB_TOKEN)@github.com/$$GITHUB_USER/$(GITHUB_REPO).git && \
-	git -C "$(REPO_ROOT)" push -u origin main && \
-	echo "Repo live at https://github.com/$$GITHUB_USER/$(GITHUB_REPO)"
+	$(PYTHON) $(REPO_ROOT)/.github-init.py "$(GITHUB_TOKEN)" "$(GITHUB_REPO)" "$(REPO_ROOT)"
 
 # Tag, push, and publish in one step — Usage: make release VERSION=0.2.0
 release:
