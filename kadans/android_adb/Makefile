@@ -9,7 +9,6 @@ GALAXY      := $(VENV)/bin/ansible-galaxy
 ANSIBLETEST := $(VENV)/bin/ansible-test
 COLLECTION  := $(shell pwd)
 INSTALL_PATH:= $(HOME)/.ansible/collections
-REPO_ROOT   := $(abspath $(COLLECTION)/../..)
 GITHUB_REPO ?= ansible-collections
 
 export PATH := $(HOME)/.local/platform-tools:$(PATH)
@@ -41,24 +40,24 @@ build:
 # Publish to Ansible Galaxy (token from .env or env)
 publish: build
 ifndef GALAXY_TOKEN
-	$(error GALAXY_TOKEN is not set — add it to $(REPO_ROOT)/.env)
+	$(error GALAXY_TOKEN is not set — add it to .env)
 endif
 	$(GALAXY) collection publish kadans-android_adb-$(VERSION).tar.gz --token $(GALAXY_TOKEN)
 
-# Tag, push, and publish in one step — Usage: make release VERSION=0.2.0
+# Tag, push, and publish — Usage: make release VERSION=0.2.0
 release:
 ifndef VERSION
 	$(error VERSION is not set — Usage: make release VERSION=0.2.0)
 endif
 ifndef GITHUB_TOKEN
-	$(error GITHUB_TOKEN is not set — add it to $(REPO_ROOT)/.env)
+	$(error GITHUB_TOKEN is not set — add it to .env)
 endif
 	@echo "Releasing kadans.android_adb v$(VERSION)..."
 	sed -i 's/^version: .*/version: $(VERSION)/' galaxy.yml
-	git -C "$(REPO_ROOT)" add kadans/android_adb/galaxy.yml
-	git -C "$(REPO_ROOT)" commit -m "Release kadans.android_adb v$(VERSION)"
-	git -C "$(REPO_ROOT)" tag -a "kadans.android_adb/v$(VERSION)" -m "kadans.android_adb v$(VERSION)"
-	git -C "$(REPO_ROOT)" push
-	git -C "$(REPO_ROOT)" push --tags
+	git -C ../.. add kadans/android_adb/galaxy.yml
+	git -C ../.. commit -m "Release kadans.android_adb v$(VERSION)"
+	git -C ../.. tag -a "kadans.android_adb/v$(VERSION)" -m "kadans.android_adb v$(VERSION)"
+	git -C ../.. push
+	git -C ../.. push --tags
 	$(MAKE) publish
 	@echo "Released kadans.android_adb v$(VERSION)"
