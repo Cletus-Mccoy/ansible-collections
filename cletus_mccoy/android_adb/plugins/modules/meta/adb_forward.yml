@@ -1,0 +1,10 @@
+---
+dependency: []
+galaxy_info:
+  author: Kasper Daems
+  description: Forward ports between host and Android device via ADB
+  license: MIT
+  min_ansible_version: '2.10'
+  platforms:
+    - name: Android
+      versions: [all]

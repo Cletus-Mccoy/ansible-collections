@@ -1,3 +1,4 @@
+
 DOCUMENTATION = r'''
 name: adb_devices
 author: Kasper Daems
@@ -22,5 +23,26 @@ options:
     required: false
     type: bool
     default: false
-version_added: '1.0.0'
+  filter:
+    description: Only include devices matching this substring (serial, model, etc.)
+    required: false
+    type: str
+  group_by_property:
+    description: Group devices by a property (e.g., model, brand)
+    required: false
+    type: str
+version_added: '1.1.0'
 '''  # noqa
+
+# Advanced usage (planned):
+# - filter: Only include devices matching a substring (serial, model, etc.)
+# - group_by_property: Group devices by a property (e.g., model, brand)
+#
+# Example (future):
+# plugin: adb_devices
+#   filter: "Pixel"
+#   group_by_property: model
+#   groups:
+#     - androids
+#
+# Implementation would require parsing `adb devices -l` and querying device properties.

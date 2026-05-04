@@ -1,0 +1,8 @@
+# Meta file for adb_device_state module
+---
+dependency: []
+author:
+  - Kasper Daems
+license: MIT
+min_ansible_version: '2.9'
+description: Manage Android device state (reboot, shutdown, recovery, bootloader) over ADB.

@@ -1,0 +1,24 @@
+---
+module: adb_pair
+short_description: Pair with an Android device over ADB wirelessly
+description:
+  - Initiates wireless ADB pairing with an Android device.
+options:
+  ip:
+    description:
+      - IP address of the device to pair with.
+    required: true
+    type: str
+  port:
+    description:
+      - Pairing port of the device.
+    required: true
+    type: int
+  pairing_code:
+    description:
+      - Pairing code shown on the device (if required).
+    required: false
+    type: str
+author:
+  - Kasper Daems
+version_added: '1.1.0'

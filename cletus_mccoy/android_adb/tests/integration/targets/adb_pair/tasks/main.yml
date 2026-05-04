@@ -1,0 +1,22 @@
+---
+# Integration test for adb_pair module.
+# Requires device in pairing mode (Settings > Developer options > Wireless debugging).
+
+- name: Ensure pairing IP and port are set
+  fail:
+    msg: "Set -e adb_pair_ip=<ip> -e adb_pair_port=<port> -e adb_pair_code=<code> when running this target."
+  when: adb_pair_ip is not defined or adb_pair_port is not defined or adb_pair_code is not defined
+
+- name: Pair device wirelessly
+  cletus_mccoy.android_adb.adb_pair:
+    ip: "{{ adb_pair_ip }}"
+    port: "{{ adb_pair_port }}"
+    pairing_code: "{{ adb_pair_code }}"
+  register: pair_result
+
+- name: Assert pairing succeeded
+  assert:
+    that:
+      - pair_result is not failed
+      - pair_result.changed
+      - '"Successfully paired" in pair_result.msg'

@@ -4,6 +4,7 @@ module: adb_device_info
 short_description: Gather Android device info over ADB
 description:
     - Gathers device information from an Android device using ADB.
+    - Also collects battery, storage, and network information.
 options:
     device:
         description:
@@ -35,9 +36,22 @@ def run_module():
     device = module.params.get("device")
 
     try:
+        # Basic device info
         output = adb_shell(adb_path, "getprop", device=device)
         props = parse_getprop(output)
         info = extract_device_info(props)
+
+        # Battery info
+        battery_output = adb_shell(adb_path, "dumpsys battery", device=device)
+        info["battery"] = battery_output
+
+        # Storage info
+        storage_output = adb_shell(adb_path, "df /data", device=device)
+        info["storage"] = storage_output
+
+        # Network info
+        network_output = adb_shell(adb_path, "ip addr show", device=device)
+        info["network"] = network_output
 
         module.exit_json(
             changed=False,

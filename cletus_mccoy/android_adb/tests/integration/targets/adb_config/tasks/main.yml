@@ -1,0 +1,46 @@
+---
+# Integration test for adb_config module.
+# Requires paired device; set adb_device=<ip>:<port>.
+
+- name: Fail fast if adb_device is not set
+  fail:
+    msg: "Set -e adb_device=<ip>:<port> when running this target."
+  when: adb_device is not defined
+
+- name: Get device model
+  cletus_mccoy.android_adb.adb_config:
+    action: get
+    key: ro.product.model
+    device: "{{ adb_device }}"
+  register: model
+
+- name: Assert model is not empty
+  assert:
+    that:
+      - model.value | length > 0
+
+- name: Set and validate a property
+  cletus_mccoy.android_adb.adb_config:
+    action: set
+    key: persist.sys.locale
+    value: en-US
+    device: "{{ adb_device }}"
+  register: set_result
+
+- name: Assert set changed
+  assert:
+    that:
+      - set_result.changed
+
+- name: Validate property
+  cletus_mccoy.android_adb.adb_config:
+    action: validate
+    key: persist.sys.locale
+    value: en-US
+    device: "{{ adb_device }}"
+  register: validate_result
+
+- name: Assert validate is true
+  assert:
+    that:
+      - validate_result.valid

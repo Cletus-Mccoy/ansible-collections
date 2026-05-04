@@ -1,2 +1,5 @@
----
-adb_device: "192.168.1.231:39041"
+##
+# Set the device IP:port here before running integration tests.
+# All integration tests will use this value for adb_device.
+# Example: adb_device: "192.168.1.123:39041"
+adb_device: "192.168.1.123:42517"

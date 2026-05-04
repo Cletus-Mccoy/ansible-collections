@@ -1,0 +1,57 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars_prompt:
+    - name: adb_pair_ip
+      prompt: "Enter the device IP address"
+    - name: adb_pair_port
+      prompt: "Enter the pairing port (for pairing step)"
+    - name: adb_pair_code
+      prompt: "Enter the pairing code from your device"
+      private: no
+    - name: adb_connect_port
+      prompt: "Enter the connect port (for adb connect step, shown on device)"
+  tasks:
+    - name: Pair device wirelessly
+      cletus_mccoy.android_adb.adb_pair:
+        ip: "{{ adb_pair_ip }}"
+        port: "{{ adb_pair_port }}"
+        pairing_code: "{{ adb_pair_code }}"
+      register: pair_result
+      ignore_errors: yes
+
+    - name: Show pairing result
+      debug:
+        var: pair_result.msg
+      when: pair_result is defined and pair_result.msg is defined
+
+    - name: Connect to device using connect port
+      ansible.builtin.command: adb connect {{ adb_pair_ip }}:{{ adb_connect_port }}
+      register: adb_connect_result
+      ignore_errors: yes
+
+    - name: Show connect result
+      debug:
+        var: adb_connect_result.stdout
+
+    - name: Always write paired IP to file
+      ansible.builtin.shell: echo "{{ adb_pair_ip }}" > /tmp/adb_pair_ip
+      ignore_errors: yes
+
+    - name: Always write paired port to file
+      ansible.builtin.shell: echo "{{ adb_pair_port }}" > /tmp/adb_pair_port
+      ignore_errors: yes
+
+    - name: Always write connect port to file
+      ansible.builtin.shell: echo "{{ adb_connect_port }}" > /tmp/adb_connect_port
+      ignore_errors: yes
+
+    - name: Verify device is connected
+      ansible.builtin.command: adb devices
+      register: adb_devices_list
+      changed_when: false
+
+    - name: Fail if device not in device list
+      fail:
+        msg: "Device {{ adb_pair_ip }}:{{ adb_connect_port }} not found in 'adb devices'. Output: {{ adb_devices_list.stdout }}"
+      when: "adb_pair_ip ~ ':' ~ adb_connect_port not in adb_devices_list.stdout"

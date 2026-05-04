@@ -1,0 +1,19 @@
+---
+module: adb_connect
+short_description: Connect to an Android device over ADB (wireless)
+description:
+  - Connects to an Android device using ADB connect (for wireless debugging).
+options:
+  ip:
+    description:
+      - IP address of the device to connect to.
+    required: true
+    type: str
+  port:
+    description:
+      - Connect port of the device (shown on device screen).
+    required: true
+    type: int
+author:
+  - Kasper Daems
+version_added: '1.3.0'

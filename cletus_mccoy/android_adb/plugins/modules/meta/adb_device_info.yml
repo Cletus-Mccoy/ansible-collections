@@ -1,0 +1,8 @@
+# Meta file for adb_device_info module
+---
+dependency: []
+author:
+  - Kasper Daems
+license: MIT
+min_ansible_version: '2.9'
+description: Gather Android device info, battery, storage, and network info over ADB.
