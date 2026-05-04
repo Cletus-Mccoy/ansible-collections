@@ -13,12 +13,12 @@ ifndef GITHUB_TOKEN
 endif
 	$(PYTHON) .github-init.py "$(GITHUB_TOKEN)" "$(GITHUB_REPO)"
 
-# Release a collection — Usage: make release COLLECTION=kadans/android_adb VERSION=0.2.0
+# Release a collection — Usage: make release COLLECTION=cletus_mccoy/android_adb VERSION=0.2.0
 release:
 ifndef COLLECTION
-	$(error COLLECTION is not set — Usage: make release COLLECTION=kadans/android_adb VERSION=0.2.0)
+	$(error COLLECTION is not set — Usage: make release COLLECTION=cletus_mccoy/android_adb VERSION=0.2.0)
 endif
 ifndef VERSION
-	$(error VERSION is not set — Usage: make release COLLECTION=kadans/android_adb VERSION=0.2.0)
+	$(error VERSION is not set — Usage: make release COLLECTION=cletus_mccoy/android_adb VERSION=0.2.0)
 endif
 	$(MAKE) -C "$(COLLECTION)" release VERSION=$(VERSION)

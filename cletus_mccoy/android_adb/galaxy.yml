@@ -2,6 +2,7 @@ namespace: cletus_mccoy
 name: android_adb
 version: 0.1.0
 readme: README.md
+repository: https://github.com/Cletus-Mccoy/ansible_collections/cletus_mccoy/android_adb
 authors:
   - Kasper Daems
 description: Manage Android devices over ADB using Ansible

@@ -1,0 +1,47 @@
+---
+# Integration tests for adb_packages module.
+# Requires a connected device; set adb_device=<ip>:<port>.
+
+- name: Fail fast if adb_device is not set
+  fail:
+    msg: "Set -e adb_device=<ip>:<port> when running this target."
+  when: adb_device is not defined
+
+- name: List user-installed packages
+  cletus_mccoy.android_adb.adb_packages:
+    device: "{{ adb_device }}"
+    include_system: false
+  register: user_pkgs
+
+- name: Assert module succeeded
+  assert:
+    that:
+      - user_pkgs is not failed
+      - user_pkgs.packages is defined
+      - user_pkgs.packages | type_debug == 'list'
+
+- name: Assert package names look valid
+  assert:
+    that:
+      - item | regex_search('^[a-zA-Z][a-zA-Z0-9_.]+$') is not none
+    fail_msg: "Package name '{{ item }}' looks malformed"
+  loop: "{{ user_pkgs.packages[:10] }}"
+  when: user_pkgs.packages | length > 0
+
+- name: List all packages (user + system)
+  cletus_mccoy.android_adb.adb_packages:
+    device: "{{ adb_device }}"
+    include_system: true
+  register: all_pkgs
+
+- name: Assert system list is larger than user list
+  assert:
+    that:
+      - all_pkgs.packages | length >= user_pkgs.packages | length
+    fail_msg: "System package list should not be smaller than user package list"
+
+- name: Show package counts
+  debug:
+    msg:
+      - "User packages : {{ user_pkgs.packages | length }}"
+      - "All packages  : {{ all_pkgs.packages | length }}"

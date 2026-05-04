@@ -1,0 +1,10 @@
+---
+dependency: []
+galaxy_info:
+  author: Kasper Daems
+  description: Probe and bootstrap Android devices over ADB
+  license: MIT
+  min_ansible_version: '2.9'
+  platforms:
+    - name: Android
+      versions: [all]

@@ -1,0 +1,56 @@
+---
+# Integration tests for adb_device_info module.
+# Requires: adb in PATH or ~/.local/platform-tools/adb, device connected over WiFi.
+# Set adb_device to the target serial (IP:port), e.g.:
+#   ansible-test integration adb_device_info -e adb_device=192.168.1.10:42135
+
+- name: Fail fast if adb_device is not set
+  fail:
+    msg: "Set -e adb_device=<ip>:<port> when running this target."
+  when: adb_device is not defined
+
+- name: Gather device info
+  cletus_mccoy.android_adb.adb_device_info:
+    device: "{{ adb_device }}"
+  register: result
+
+- name: Assert module succeeded
+  assert:
+    that:
+      - result is not failed
+      - result.android_device_info is defined
+
+- name: Assert all expected keys are present
+  assert:
+    that:
+      - "'manufacturer' in result.android_device_info"
+      - "'model' in result.android_device_info"
+      - "'brand' in result.android_device_info"
+      - "'android_ver' in result.android_device_info"
+      - "'sdk_version' in result.android_device_info"
+      - "'build_id' in result.android_device_info"
+      - "'serial' in result.android_device_info"
+      - "'timezone' in result.android_device_info"
+      - "'locale' in result.android_device_info"
+
+- name: Assert no field is empty
+  assert:
+    that:
+      - result.android_device_info[item] | length > 0
+    fail_msg: "Field '{{ item }}' is empty"
+  loop:
+    - manufacturer
+    - model
+    - brand
+    - android_ver
+    - sdk_version
+
+- name: Assert sdk_version is numeric
+  assert:
+    that:
+      - result.android_device_info.sdk_version | int > 0
+    fail_msg: "sdk_version '{{ result.android_device_info.sdk_version }}' is not a valid integer"
+
+- name: Show gathered device info
+  debug:
+    var: result.android_device_info

@@ -1,0 +1,37 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Tests: Get device info",
+            "type": "shell",
+            "command": "wsl ansible-playbook -i tests/inventory/hosts.ini tests/playbooks/get-device-info.yml",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Dev: Install Ansible Collection",
+            "type": "shell",
+            "command": "wsl ansible-galaxy collection install ./ansible_collections/cletus_mccoy/android_adb --force",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
