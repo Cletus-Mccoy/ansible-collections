@@ -1,6 +1,8 @@
 tests/output/
 .env
-tests/integration/integration_config.yml
+# match in any collection, not just repo root (collections live under <ns>/<name>/)
+integration_config.yml
+localcopy.txt
 *.tar.gz
 __pycache__/
 *.pyc

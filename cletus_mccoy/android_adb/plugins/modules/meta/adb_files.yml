@@ -1,0 +1,60 @@
+---
+documentation:
+  name: adb_files
+  short_description: Push or pull files to/from an Android device using adb
+  description:
+    - Pushes a file from the control node to the Android device, or pulls a file from the device to the control node, using adb.
+  options:
+    action:
+      description:
+        - Whether to push or pull a file.
+      required: true
+      type: str
+      choices: [push, pull]
+    src:
+      description:
+        - Source file path (local for push, remote for pull).
+      required: true
+      type: str
+    dest:
+      description:
+        - Destination file path (remote for push, local for pull).
+      required: true
+      type: str
+    device:
+      description:
+        - The device serial to target (optional).
+      required: false
+      type: str
+    adb_path:
+      description:
+        - Path to the adb executable (default 'adb').
+      required: false
+      type: str
+  author:
+    - Your Name (@yourgithub)
+
+examples:
+  - name: Push a file to device
+    cletus_mccoy.android_adb.adb_files:
+      action: push
+      src: ./localfile.txt
+      dest: /data/local/tmp/remote.txt
+      device: "{{ adb_device }}"
+
+  - name: Pull a file from device
+    cletus_mccoy.android_adb.adb_files:
+      action: pull
+      src: /data/local/tmp/remote.txt
+      dest: ./localcopy.txt
+      device: "{{ adb_device }}"
+
+return:
+  msg:
+    description: Operation summary
+    returned: always
+    type: str
+  stdout:
+    description: Output from the adb command
+    returned: always
+    type: str

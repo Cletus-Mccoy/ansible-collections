@@ -25,10 +25,19 @@ install:
 test-unit:
 	$(PYTEST) -v
 
-test-integration: install
-	$(ANSIBLETEST) integration adb_device_info adb_packages role_android_probe --python 3.12
 
-test: test-unit test-integration
+
+# Main test target: unit tests and orchestrated integration tests
+test: test-unit integration-orchestrator
+
+# Run orchestrated integration tests (recommended for full-sequence validation)
+integration-orchestrator: install
+	ANSIBLE_CONFIG=../../ansible.cfg ansible-playbook -i tests/integration/inventory tests/integration/orchestrator.yml -e @tests/integration/integration_config.yml
+
+# Legacy/manual integration test target (deprecated)
+test-integration:
+	@echo "[DEPRECATED] Use 'make integration-orchestrator' for integration tests."
+	@echo "This target is kept for reference only."
 
 clean:
 	rm -rf tests/output

@@ -11,14 +11,14 @@ Ansible collections by Kasper Daems.
 ## Install
 
 ```bash
-ansible-galaxy collection install git+https://github.com/kasper-daems/ansible-collections.git#/cletus_mccoy/android_adb,v0.1.0
+ansible-galaxy collection install git+https://github.com/Cletus-Mccoy/ansible-collections.git#/cletus_mccoy/android_adb,v0.2.0
 ```
 
 Or via `requirements.yml`:
 
 ```yaml
 collections:
-  - source: https://github.com/kasper-daems/ansible-collections.git#/cletus_mccoy/android_adb
+  - source: https://github.com/Cletus-Mccoy/ansible-collections.git#/cletus_mccoy/android_adb
     type: git
-    version: v0.1.0
+    version: v0.2.0
 ```

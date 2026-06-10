@@ -34,7 +34,12 @@ def test_run_module(monkeypatch):
     module = DummyModule()
     # Patch AnsibleModule to DummyModule
     monkeypatch.setattr(adb_device_info, "AnsibleModule", lambda **kwargs: module)
-    adb_device_info.run_module()
+    assert hasattr(adb_device_info, "main")
+    try:
+        adb_device_info.main()
+    except SystemExit:
+        pass
+    assert module.result is not None
     assert module.result["android_device_info"]["model"] == "Pixel 5"
     assert "battery" in module.result["android_device_info"]
     assert "storage" in module.result["android_device_info"]

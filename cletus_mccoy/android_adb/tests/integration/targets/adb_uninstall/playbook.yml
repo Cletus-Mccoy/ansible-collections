@@ -1,0 +1,8 @@
+---
+# Playbook wrapper for adb_uninstall integration test
+- hosts: testhost
+  gather_facts: false
+  vars_files:
+    - ../../integration_config.yml
+  tasks:
+    - include_tasks: tasks/main.yml

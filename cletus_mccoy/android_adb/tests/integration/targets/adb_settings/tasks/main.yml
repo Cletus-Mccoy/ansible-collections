@@ -1,0 +1,47 @@
+---
+# Integration test for adb_settings module.
+# Requires a paired device; set adb_device=<ip>:<port> in integration_config.yml.
+
+- name: Read a known settings value (read-only)
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: system
+    key: screen_off_timeout
+    state: read
+  register: timeout_read
+
+- name: Set screen_off_timeout to 600000 (10 min)
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: system
+    key: screen_off_timeout
+    value: "600000"
+  register: timeout_set
+  ignore_errors: true
+
+- name: Idempotency — second set reports no change
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: system
+    key: screen_off_timeout
+    value: "600000"
+  register: timeout_again
+  when: not timeout_set.failed
+
+- name: Assert idempotency holds
+  assert:
+    that:
+      - timeout_again.changed == false
+  when:
+    - not timeout_set.failed
+    - timeout_again is defined
+
+- name: Restore previous value
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: system
+    key: screen_off_timeout
+    value: "{{ timeout_read.value }}"
+  when:
+    - not timeout_set.failed
+    - timeout_read.value is not none

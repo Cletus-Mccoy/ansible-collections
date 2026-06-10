@@ -1,0 +1,26 @@
+---
+# Integration test for adb_bootstrap role: pairing, connecting, and device setup
+
+- name: Ensure pairing variables are set
+  fail:
+    msg: "Set -e adb_pair_ip=<ip> -e adb_pair_port=<port> -e adb_pair_code=<code> when running this target."
+  when: adb_pair_ip is not defined or adb_pair_port is not defined or adb_pair_code is not defined
+
+- name: Run adb_bootstrap role
+  include_role:
+    name: cletus_mccoy.android_adb.adb_bootstrap
+  vars:
+    adb_pair_ip: "{{ adb_pair_ip }}"
+    adb_pair_port: "{{ adb_pair_port }}"
+    adb_pair_code: "{{ adb_pair_code }}"
+
+- name: Assert device is paired and connected
+  command: adb devices
+  register: adb_devices
+  changed_when: false
+  delegate_to: localhost
+
+- name: Check device is listed
+  assert:
+    that:
+      - adb_devices.stdout is search(adb_pair_ip)

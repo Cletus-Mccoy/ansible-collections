@@ -1,0 +1,35 @@
+---
+# Manage Android Settings database values via the adb_settings module
+# (idempotent), replacing the previous raw `adb shell` calls.
+
+- name: Bulk set Android settings
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ item.device | default(settings_device) | default(omit) }}"
+    namespace: "{{ item.namespace }}"
+    key: "{{ item.key }}"
+    value: "{{ item.value | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  loop: "{{ settings_bulk | default([]) }}"
+  loop_control:
+    label: "{{ item.namespace }}/{{ item.key }}"
+
+- name: Get Android settings
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ item.device | default(settings_device) | default(omit) }}"
+    namespace: "{{ item.namespace }}"
+    key: "{{ item.key }}"
+    state: read
+  delegate_to: "{{ adb_delegate_host }}"
+  loop: "{{ settings_get | default([]) }}"
+  loop_control:
+    label: "{{ item.namespace }}/{{ item.key }}"
+  register: settings_get_results
+
+- name: Show settings get results
+  debug:
+    msg: "{{ item.item.namespace }}/{{ item.item.key }} = {{ item.value }}"
+  loop: "{{ settings_get_results.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.namespace }}/{{ item.item.key }}"
+  when: settings_get_results is defined

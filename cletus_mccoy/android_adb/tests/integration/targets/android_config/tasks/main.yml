@@ -1,0 +1,5 @@
+---
+# Integration test stub for android_config role
+- name: Stub test for android_config
+  debug:
+    msg: "android_config integration test placeholder"

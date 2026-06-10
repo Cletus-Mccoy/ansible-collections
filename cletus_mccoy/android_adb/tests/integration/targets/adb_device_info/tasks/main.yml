@@ -4,10 +4,6 @@
 # Set adb_device to the target serial (IP:port), e.g.:
 #   ansible-test integration adb_device_info -e adb_device=192.168.1.10:42135
 
-- name: Fail fast if adb_device is not set
-  fail:
-    msg: "Set -e adb_device=<ip>:<port> when running this target."
-  when: adb_device is not defined
 
 - name: Gather device info
   cletus_mccoy.android_adb.adb_device_info:

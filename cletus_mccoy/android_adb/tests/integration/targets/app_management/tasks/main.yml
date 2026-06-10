@@ -1,0 +1,16 @@
+---
+- name: Test bulk install (noop)
+  include_role:
+    name: cletus_mccoy.android_adb.app_management
+  vars:
+    app_action: bulk_install
+    app_install_list:
+      - /data/local/tmp/fake1.apk
+      - /data/local/tmp/fake2.apk
+
+- name: Test targeted remove (noop)
+  include_role:
+    name: cletus_mccoy.android_adb.app_management
+  vars:
+    app_action: targeted_remove
+    targeted_package: com.example.fake

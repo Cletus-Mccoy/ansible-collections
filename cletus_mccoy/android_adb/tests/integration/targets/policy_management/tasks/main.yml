@@ -1,0 +1,12 @@
+---
+- name: Test enforce screen lock
+  include_role:
+    name: cletus_mccoy.android_adb.policy_management
+  vars:
+    enforce_screen_lock: true
+
+- name: Test remote lock (noop)
+  include_role:
+    name: cletus_mccoy.android_adb.policy_management
+  vars:
+    remote_lock: true

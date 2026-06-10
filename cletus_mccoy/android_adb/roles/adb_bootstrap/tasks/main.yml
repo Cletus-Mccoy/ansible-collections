@@ -1,0 +1,81 @@
+---
+# Bootstrap role: one-time setup to bring an Android device under management.
+#
+# Flow:
+#   1. (optional) wireless pairing for non-rooted devices
+#   2. connect to the device over ADB
+#   3. configure the chosen ADB strategy (persistent vs on-demand),
+#      branching on whether the device is rooted.
+
+# --- 1. Pairing (one-time, non-rooted wireless debugging) -----------------
+- name: Wireless pairing
+  when: adb_do_pairing | bool
+  block:
+    - name: Pair device wirelessly
+      cletus_mccoy.android_adb.adb_pair:
+        ip: "{{ adb_pair_ip }}"
+        port: "{{ adb_pair_port }}"
+        pairing_code: "{{ adb_pair_code }}"
+      delegate_to: "{{ adb_delegate_host }}"
+      register: pair_result
+
+    - name: Assert pairing succeeded
+      assert:
+        that:
+          - pair_result is not failed
+          - '"Successfully paired" in (pair_result.msg | default(""))'
+        fail_msg: "Wireless pairing failed for {{ adb_pair_ip }}:{{ adb_pair_port }}"
+
+# --- 2. Connect -----------------------------------------------------------
+- name: Connect to device over ADB
+  cletus_mccoy.android_adb.adb_connect:
+    ip: "{{ adb_pair_ip }}"
+    port: "{{ adb_connect_port }}"
+    state: present
+  delegate_to: "{{ adb_delegate_host }}"
+  register: connect_result
+
+- name: Assert connection succeeded
+  assert:
+    that:
+      - connect_result is not failed
+    fail_msg: "Could not connect to {{ adb_pair_ip }}:{{ adb_connect_port }}"
+
+# --- 3a. Persistent ADB on a ROOTED device --------------------------------
+# Rooted devices can enable persistent ADB natively. Setting persist.adb.tcp.port
+# survives reboots. This requires root (su) to write the persist property.
+- name: Configure persistent ADB (rooted)
+  when:
+    - adb_strategy == 'persistent'
+    - device_rooted | bool
+  cletus_mccoy.android_adb.adb_shell:
+    command: "su 0 setprop persist.adb.tcp.port {{ adb_persistent_port }}"
+    device: "{{ adb_pair_ip }}:{{ adb_connect_port }}"
+  delegate_to: "{{ adb_delegate_host }}"
+
+# --- 3b. Persistent ADB on a NON-ROOTED device ----------------------------
+# Non-rooted devices cannot persist ADB across reboots without help. The
+# recommended approach is the adb-auto-enable app
+# (https://github.com/mouldybread/adb-auto-enable), which re-enables ADB on a
+# fixed port after every reboot. It requires a one-time pairing via its web UI,
+# which cannot be fully automated here — so we surface clear guidance instead.
+- name: Persistent ADB on non-rooted device requires the adb-auto-enable helper
+  when:
+    - adb_strategy == 'persistent'
+    - not (device_rooted | bool)
+  debug:
+    msg: >-
+      Device {{ adb_pair_ip }} is non-rooted and requested persistent ADB.
+      Install the adb-auto-enable app
+      (https://github.com/mouldybread/adb-auto-enable), complete its one-time
+      web-UI pairing, and configure it to expose port {{ adb_persistent_port }}.
+      Provide the APK via app_install_list to automate the install step.
+
+# --- 3c. On-demand devices ------------------------------------------------
+- name: Note on-demand ADB strategy
+  when: adb_strategy == 'on_demand'
+  debug:
+    msg: >-
+      Device {{ adb_pair_ip }} uses on-demand ADB. No persistent exposure is
+      configured; enable wireless debugging manually before running playbooks
+      against it.

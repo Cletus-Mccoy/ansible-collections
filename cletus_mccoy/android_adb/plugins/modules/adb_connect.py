@@ -1,9 +1,13 @@
 DOCUMENTATION = r'''
 ---
 module: adb_connect
-short_description: Connect to an Android device over ADB (wireless)
+short_description: Connect to (or disconnect from) an Android device over ADB (wireless)
 description:
-  - Connects to an Android device using ADB connect (for wireless debugging).
+  - Manages a wireless ADB connection to an Android device using C(adb connect)
+    and C(adb disconnect).
+  - Idempotent. When O(state=present) and the device is already connected, the
+    module reports C(changed=false). When O(state=absent) and the device is not
+    connected, it also reports C(changed=false).
 options:
   ip:
     description:
@@ -12,9 +16,21 @@ options:
     type: str
   port:
     description:
-      - Connect port of the device (shown on device screen).
+      - Connect port of the device (shown on device screen for wireless debugging).
     required: true
     type: int
+  state:
+    description:
+      - C(present) ensures the device is connected; C(absent) disconnects it.
+    required: false
+    type: str
+    choices: [present, absent]
+    default: present
+  adb_path:
+    description:
+      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
+    required: false
+    type: str
 author:
   - Kasper Daems
 version_added: '1.3.0'
@@ -22,18 +38,24 @@ version_added: '1.3.0'
 
 EXAMPLES = r'''
 - name: Connect to device
-  adb_connect:
+  cletus_mccoy.android_adb.adb_connect:
     ip: 192.168.1.100
     port: 37011
+
+- name: Disconnect from device
+  cletus_mccoy.android_adb.adb_connect:
+    ip: 192.168.1.100
+    port: 37011
+    state: absent
 '''
 
 RETURN = r'''
 changed:
-  description: Whether connection was performed.
+  description: Whether the connection state was changed.
   returned: always
   type: bool
 msg:
-  description: Result message.
+  description: Result message from adb.
   returned: always
   type: str
 '''
@@ -42,34 +64,75 @@ from ansible.module_utils.basic import AnsibleModule
 import subprocess
 import shutil
 
-def run_module():
+
+def _is_connected(adb_path, target):
+    """Return True if ``target`` (ip:port) shows as a device in ``adb devices``."""
+    proc = subprocess.run(
+        [adb_path, "devices"], capture_output=True, text=True, timeout=10
+    )
+    for line in proc.stdout.splitlines()[1:]:
+        line = line.strip()
+        if not line:
+            continue
+        serial = line.split()[0]
+        state = line.split()[-1]
+        if serial == target and state == "device":
+            return True
+    return False
+
+
+def main():
     module = AnsibleModule(
         argument_spec=dict(
             ip=dict(type="str", required=True),
             port=dict(type="int", required=True),
+            state=dict(type="str", required=False, default="present",
+                       choices=["present", "absent"]),
+            adb_path=dict(type="str", required=False, default=None),
         ),
-        supports_check_mode=False,
+        supports_check_mode=True,
     )
 
-    adb_path = shutil.which("adb")
+    adb_path = module.params["adb_path"] or shutil.which("adb")
     if not adb_path:
-        module.fail_json(msg="adb not found in PATH")
+        module.fail_json(msg="adb not found in PATH", changed=False)
 
     ip = module.params["ip"]
     port = module.params["port"]
+    state = module.params["state"]
+    target = f"{ip}:{port}"
 
-    cmd = [adb_path, "connect", f"{ip}:{port}"]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        if proc.returncode == 0 and ("connected to" in proc.stdout or "already connected" in proc.stdout):
-            module.exit_json(changed=True, msg=proc.stdout.strip())
-        else:
-            module.fail_json(msg=proc.stdout + proc.stderr)
-    except Exception as e:
-        module.fail_json(msg=str(e))
+        already_connected = _is_connected(adb_path, target)
 
-def main():
-    run_module()
+        if state == "present":
+            if already_connected:
+                module.exit_json(changed=False, msg=f"already connected to {target}")
+            if module.check_mode:
+                module.exit_json(changed=True, msg=f"would connect to {target}")
+            proc = subprocess.run(
+                [adb_path, "connect", target],
+                capture_output=True, text=True, timeout=10,
+            )
+            out = (proc.stdout or "") + (proc.stderr or "")
+            if proc.returncode == 0 and ("connected to" in proc.stdout or "already connected" in proc.stdout):
+                module.exit_json(changed=True, msg=proc.stdout.strip())
+            module.fail_json(msg=out.strip() or "adb connect failed", changed=False)
+        else:  # absent
+            if not already_connected:
+                module.exit_json(changed=False, msg=f"{target} not connected")
+            if module.check_mode:
+                module.exit_json(changed=True, msg=f"would disconnect {target}")
+            proc = subprocess.run(
+                [adb_path, "disconnect", target],
+                capture_output=True, text=True, timeout=10,
+            )
+            if proc.returncode == 0:
+                module.exit_json(changed=True, msg=proc.stdout.strip() or f"disconnected {target}")
+            module.fail_json(msg=(proc.stdout + proc.stderr).strip(), changed=False)
+    except Exception as e:
+        module.fail_json(msg=str(e), changed=False)
+
 
 if __name__ == "__main__":
     main()

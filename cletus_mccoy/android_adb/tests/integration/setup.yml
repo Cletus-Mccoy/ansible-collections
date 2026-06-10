@@ -1,0 +1,39 @@
+---
+# Playbook to pair and connect to the Android device for integration tests.
+# Sets the 'adb_device' fact for use in all subsequent tests.
+- name: Android ADB Integration Test Setup
+  hosts: testhost
+  gather_facts: false
+  vars_files:
+    - ../integration_config.yml
+  tasks:
+    # - name: Pair device
+    #   cletus_mccoy.android_adb.adb_pair:
+    #     ip: "{{ adb_pair_ip }}"
+    #     port: "{{ adb_pair_port }}"
+    #     pairing_code: "{{ adb_pair_code }}"
+    #   register: pair_result
+    #   ignore_errors: true
+
+    # - name: Assert device paired or already paired
+    #   assert:
+    #     that:
+    #       - pair_result is not failed
+    #     fail_msg: "Device pairing failed."
+
+    - name: Connect to device
+      cletus_mccoy.android_adb.adb_connect:
+        ip: "{{ adb_pair_ip }}"
+        port: "{{ adb_connect_port }}"
+      register: connect_result
+
+    - name: Assert connect succeeded
+      assert:
+        that:
+          - connect_result is not failed
+          - connect_result.changed or 'already connected' in connect_result.msg | default('')
+        fail_msg: "Device connect failed."
+
+    - name: Set adb_device fact for downstream tests
+      set_fact:
+        adb_device: "{{ adb_pair_ip }}:{{ adb_connect_port }}"

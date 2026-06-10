@@ -1,0 +1,17 @@
+---
+# settings_management role defaults
+
+# Host that runs the adb binary (controller).
+adb_delegate_host: localhost
+
+# Optional default device (serial / IP:port) for all entries. Each list item
+# may override it with its own `device` key.
+settings_device: "{{ inventory_hostname }}"
+
+# Settings to ensure. Each item: {namespace, key, value, state?, device?}
+#   namespace: system | secure | global
+#   state:     present (default) | absent
+settings_bulk: []
+
+# Settings to read back. Each item: {namespace, key, device?}
+settings_get: []

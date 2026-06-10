@@ -1,0 +1,12 @@
+
+# Integration test for adb_forward module
+- name: Try to forward a port (non-fatal)
+  cletus_mccoy.android_adb.adb_forward:
+    local: tcp:6100
+    remote: tcp:7100
+  register: forward_result
+  ignore_errors: true
+
+- name: Show adb_forward result
+  debug:
+    var: forward_result

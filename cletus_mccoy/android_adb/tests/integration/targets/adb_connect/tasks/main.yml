@@ -1,0 +1,21 @@
+---
+# Integration test for adb_connect module.
+# Requires device to be paired and reachable.
+
+- name: Ensure connect variables are set
+  fail:
+    msg: "Set adb_pair_ip, adb_connect_port in integration_config.yml or as extra vars."
+  when: adb_pair_ip is not defined or adb_connect_port is not defined
+
+- name: Connect to device
+  cletus_mccoy.android_adb.adb_connect:
+    ip: "{{ adb_pair_ip }}"
+    port: "{{ adb_connect_port }}"
+  register: connect_result
+
+- name: Assert connect succeeded
+  assert:
+    that:
+      - connect_result is not failed
+      - connect_result.changed
+      - '"connected" in connect_result.msg'

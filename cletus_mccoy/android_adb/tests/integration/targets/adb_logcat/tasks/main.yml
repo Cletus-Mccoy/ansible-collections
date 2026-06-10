@@ -1,0 +1,13 @@
+---
+# Integration test for adb_logcat module
+- name: Try to get logcat output
+  cletus_mccoy.android_adb.adb_logcat:
+    device: "{{ adb_device }}"
+    lines: 5
+  register: logcat_result
+
+- name: Assert logcat output present
+  assert:
+    that:
+      - logcat_result.output is defined
+      - logcat_result.output | length > 0

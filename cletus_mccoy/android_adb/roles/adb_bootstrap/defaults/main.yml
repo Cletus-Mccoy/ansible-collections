@@ -1,0 +1,32 @@
+---
+# adb_bootstrap role defaults
+#
+# All values are expected to be overridden per-device via host_vars/group_vars.
+
+# Whether the device is rooted. Rooted devices can enable persistent ADB
+# natively via `persist.adb.tcp.port`; non-rooted devices rely on a one-time
+# pairing and (optionally) the adb-auto-enable helper app.
+device_rooted: false
+
+# ADB strategy for this device: one of
+#   persistent  - device should always expose ADB on a fixed port
+#   on_demand   - ADB is enabled manually when needed (no persistent exposure)
+adb_strategy: on_demand
+
+# Host that actually runs the adb binary (the Ansible controller by default).
+# The pair/connect/setprop modules shell out to adb locally, so they are
+# delegated here.
+adb_delegate_host: localhost
+
+# Connection / pairing details (set per device in inventory).
+adb_pair_ip: ""
+adb_pair_port: 0
+adb_pair_code: ""
+adb_connect_port: 5555
+
+# Whether to run the one-time wireless pairing step. Set false for already
+# trusted/paired devices to make the role re-runnable.
+adb_do_pairing: false
+
+# Fixed TCP port to expose persistent ADB on (rooted devices).
+adb_persistent_port: 5555

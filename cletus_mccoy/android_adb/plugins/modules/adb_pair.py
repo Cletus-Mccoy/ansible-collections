@@ -48,7 +48,7 @@ from ansible.module_utils.basic import AnsibleModule
 import subprocess
 import shutil
 
-def run_module():
+def main():
     module = AnsibleModule(
         argument_spec=dict(
             ip=dict(type="str", required=True),
@@ -60,7 +60,7 @@ def run_module():
 
     adb_path = shutil.which("adb")
     if not adb_path:
-        module.fail_json(msg="adb not found in PATH")
+      module.fail_json(msg="adb not found in PATH", changed=False)
 
     ip = module.params["ip"]
     port = module.params["port"]
@@ -68,22 +68,19 @@ def run_module():
 
     cmd = [adb_path, "pair", f"{ip}:{port}"]
     try:
-        if pairing_code:
-            # Send pairing code via stdin
-            proc = subprocess.run(cmd, input=pairing_code + "\n", capture_output=True, text=True, timeout=10)
-        else:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        if proc.returncode == 0 and "Successfully paired" in proc.stdout:
-            module.exit_json(changed=True, msg=proc.stdout.strip())
-        elif "Enter pairing code" in proc.stdout and not pairing_code:
-            module.fail_json(msg="Pairing code required. Please provide pairing_code parameter.")
-        else:
-            module.fail_json(msg=proc.stdout + proc.stderr)
+      if pairing_code:
+        # Send pairing code via stdin
+        proc = subprocess.run(cmd, input=pairing_code + "\n", capture_output=True, text=True, timeout=10)
+      else:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+      if proc.returncode == 0 and "Successfully paired" in proc.stdout:
+        module.exit_json(changed=True, msg=proc.stdout.strip())
+      elif "Enter pairing code" in proc.stdout and not pairing_code:
+        module.fail_json(msg="Pairing code required. Please provide pairing_code parameter.", changed=False)
+      else:
+        module.fail_json(msg=proc.stdout + proc.stderr, changed=False)
     except Exception as e:
-        module.fail_json(msg=str(e))
-
-def main():
-    run_module()
+      module.fail_json(msg=str(e), changed=False)
 
 if __name__ == "__main__":
     main()

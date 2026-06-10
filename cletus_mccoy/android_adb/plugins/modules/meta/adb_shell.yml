@@ -1,0 +1,38 @@
+---
+# adb_shell Ansible module metadata
+documentation:
+  name: adb_shell
+  short_description: Run arbitrary adb shell commands on an Android device
+  description:
+    - Runs an arbitrary shell command on an Android device using adb.
+  options:
+    command:
+      description:
+        - The shell command to run on the device.
+      required: true
+      type: str
+    device:
+      description:
+        - The device serial to target (optional).
+      required: false
+      type: str
+    adb_path:
+      description:
+        - Path to the adb executable (default 'adb').
+      required: false
+      type: str
+  author:
+    - Your Name (@yourgithub)
+
+examples:
+  - name: Make directory on device
+    cletus_mccoy.android_adb.adb_shell:
+      command: "mkdir -p /data/local/tmp"
+      device: "{{ adb_device }}"
+
+return:
+  stdout:
+    description: Output from the shell command
+    returned: always
+    type: str
+    sample: "Directory created"

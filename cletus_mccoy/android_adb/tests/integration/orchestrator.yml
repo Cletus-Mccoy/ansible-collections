@@ -1,0 +1,18 @@
+---
+# Orchestrator playbook: runs setup, then all module integration tests in sequence.
+- import_playbook: setup.yml
+# 
+
+- import_playbook: targets/adb_files/playbook.yml
+- import_playbook: targets/adb_shell/playbook.yml
+- import_playbook: targets/adb_config/playbook.yml
+- import_playbook: targets/adb_settings/playbook.yml
+- import_playbook: targets/adb_device_info/playbook.yml
+- import_playbook: targets/adb_forward/playbook.yml
+- import_playbook: targets/adb_install/playbook.yml
+- import_playbook: targets/adb_intent/playbook.yml
+- import_playbook: targets/adb_logcat/playbook.yml
+- import_playbook: targets/adb_packages/playbook.yml
+- import_playbook: targets/adb_reboot/playbook.yml
+- import_playbook: targets/adb_screenrecord/playbook.yml
+- import_playbook: targets/adb_uninstall/playbook.yml

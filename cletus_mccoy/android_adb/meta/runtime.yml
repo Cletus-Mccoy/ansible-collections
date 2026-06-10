@@ -4,6 +4,27 @@
 # to galaxy
 requires_ansible: '>=2.9.10'
 
+# Groups of modules that share a common set of options, so module_defaults can
+# target the whole collection at once (e.g. set adb_path/device for all adb_*).
+action_groups:
+  adb:
+    - adb_config
+    - adb_connect
+    - adb_device_info
+    - adb_device_state
+    - adb_files
+    - adb_forward
+    - adb_install
+    - adb_intent
+    - adb_logcat
+    - adb_packages
+    - adb_pair
+    - adb_reboot
+    - adb_screenrecord
+    - adb_settings
+    - adb_shell
+    - adb_uninstall
+
 # Content that Ansible needs to load from another location or that has
 # been deprecated/removed
 # plugin_routing:

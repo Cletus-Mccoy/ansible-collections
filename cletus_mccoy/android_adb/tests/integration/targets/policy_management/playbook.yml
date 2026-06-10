@@ -1,0 +1,8 @@
+---
+# Playbook wrapper for policy_management integration test
+- hosts: testhost
+  gather_facts: false
+  vars_files:
+    - ../../integration_config.yml
+  tasks:
+    - include_tasks: tasks/main.yml

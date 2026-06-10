@@ -1,0 +1,36 @@
+---
+# Enforce screen lock policy
+- name: Enforce screen lock
+  adb_config:
+    action: set
+    key: lock_screen
+    value: "{{ enforce_screen_lock | default(false) }}"
+  when: enforce_screen_lock is defined
+
+# Set minimum password length
+- name: Set minimum password length
+  adb_config:
+    action: set
+    key: min_password_length
+    value: "{{ min_password_length }}"
+  when: min_password_length is defined
+
+# Enforce encryption
+- name: Enforce device encryption
+  adb_config:
+    action: set
+    key: require_encryption
+    value: "{{ require_encryption | default(false) }}"
+  when: require_encryption is defined
+
+# Remote wipe
+- name: Remote wipe device
+  adb_device_state:
+    state: wipe
+  when: remote_wipe | default(false)
+
+# Remote lock
+- name: Remote lock device
+  adb_device_state:
+    state: lock
+  when: remote_lock | default(false)

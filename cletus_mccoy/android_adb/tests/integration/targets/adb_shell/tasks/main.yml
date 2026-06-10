@@ -1,0 +1,11 @@
+
+- name: Run echo command on device
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: "echo integration-test"
+  register: echo_result
+
+- name: Assert echo output
+  assert:
+    that:
+      - echo_result.stdout == 'integration-test'

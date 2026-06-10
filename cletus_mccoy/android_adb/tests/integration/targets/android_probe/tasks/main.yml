@@ -2,6 +2,11 @@
 # Integration test for the android_probe role end-to-end.
 # Requires a connected device; set adb_device=<ip>:<port>.
 
+- name: Load device address from tests/output/adb_devices.yml if not set
+  set_fact:
+    adb_device: "{{ lookup('file', playbook_dir + '/../../output/adb_devices.yml') | from_yaml | json_query('devices[0]') }}"
+  when: adb_device is not defined and lookup('file', playbook_dir + '/../../output/adb_devices.yml', errors='ignore') != ''
+
 - name: Fail fast if adb_device is not set
   fail:
     msg: "Set -e adb_device=<ip>:<port> when running this target."

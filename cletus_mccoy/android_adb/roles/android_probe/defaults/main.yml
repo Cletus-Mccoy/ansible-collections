@@ -1,0 +1,4 @@
+---
+# Default values for android_probe role
+local_ip: "127.0.0.1"
+adb_port: "5555"

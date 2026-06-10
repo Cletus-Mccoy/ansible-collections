@@ -1,0 +1,15 @@
+---
+# Integration test for adb_intent module
+- name: Try to send an intent (should fail with fake action)
+  cletus_mccoy.android_adb.adb_intent:
+    device: "{{ adb_device }}"
+    action: com.example.INVALID_ACTION
+  register: intent_result
+  ignore_errors: true
+
+- name: Assert intent failed as expected
+  assert:
+    that:
+      - intent_result.failed
+      - intent_result.msg is defined
+    fail_msg: "Intent did not fail as expected for invalid action"

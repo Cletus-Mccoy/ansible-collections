@@ -1,0 +1,15 @@
+---
+dependency: []
+galaxy_info:
+  author: Kasper Daems
+  description: Manage Android Settings database values (settings get/put/delete) over ADB
+  license: MIT
+  min_ansible_version: '2.10'
+  platforms:
+    - name: Android
+      versions: [all]
+  galaxy_tags:
+    - android
+    - adb
+    - settings
+    - configuration

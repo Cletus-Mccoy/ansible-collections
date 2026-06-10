@@ -21,17 +21,22 @@ def test_pair_success(monkeypatch):
     class DummyModule:
         def __init__(self):
             self.params = {"ip": "192.168.1.100", "port": 12345, "pairing_code": "123456"}
+            self.result = None
         def exit_json(self, **kwargs):
             self.result = kwargs
             raise SystemExit
         def fail_json(self, **kwargs):
+            self.result = kwargs
             raise Exception(kwargs["msg"])
     module = DummyModule()
     try:
-        adb_pair.run_module.__globals__["AnsibleModule"] = lambda **_: module
-        adb_pair.run_module()
+        adb_pair.main.__globals__["AnsibleModule"] = lambda **kwargs: module
+        assert hasattr(adb_pair, "main")
+        adb_pair.main()
     except SystemExit:
         pass
+    assert hasattr(module, "result")
+    assert module.result is not None
     assert module.result["changed"] is True
     assert "Successfully paired" in module.result["msg"]
 
@@ -45,6 +50,7 @@ def test_pair_code_required(monkeypatch):
     class DummyModule:
         def __init__(self):
             self.params = {"ip": "192.168.1.100", "port": 12345}
+            self.result = None
         def exit_json(self, **kwargs):
             self.result = kwargs
             raise SystemExit
@@ -53,10 +59,13 @@ def test_pair_code_required(monkeypatch):
             raise SystemExit
     module = DummyModule()
     try:
-        adb_pair.run_module.__globals__["AnsibleModule"] = lambda **_: module
-        adb_pair.run_module()
+        adb_pair.main.__globals__["AnsibleModule"] = lambda **kwargs: module
+        assert hasattr(adb_pair, "main")
+        adb_pair.main()
     except SystemExit:
         pass
+    assert hasattr(module, "result")
+    assert module.result is not None
     assert "Pairing code required" in module.result["msg"]
 
 def test_pair_failure(monkeypatch):
@@ -69,6 +78,7 @@ def test_pair_failure(monkeypatch):
     class DummyModule:
         def __init__(self):
             self.params = {"ip": "192.168.1.100", "port": 12345, "pairing_code": "badcode"}
+            self.result = None
         def exit_json(self, **kwargs):
             self.result = kwargs
             raise SystemExit
@@ -77,8 +87,11 @@ def test_pair_failure(monkeypatch):
             raise SystemExit
     module = DummyModule()
     try:
-        adb_pair.run_module.__globals__["AnsibleModule"] = lambda **_: module
-        adb_pair.run_module()
+        adb_pair.main.__globals__["AnsibleModule"] = lambda **kwargs: module
+        assert hasattr(adb_pair, "main")
+        adb_pair.main()
     except SystemExit:
         pass
+    assert hasattr(module, "result")
+    assert module.result is not None
     assert "Failed to pair" in module.result["msg"]

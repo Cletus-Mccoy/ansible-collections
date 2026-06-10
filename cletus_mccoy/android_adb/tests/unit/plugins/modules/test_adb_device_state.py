@@ -21,7 +21,12 @@ def test_run_module_reboot(monkeypatch):
     monkeypatch.setattr(adb_device_state, "AnsibleModule", lambda **kwargs: DummyModule("reboot"))
     module = DummyModule("reboot")
     monkeypatch.setattr(adb_device_state, "AnsibleModule", lambda **kwargs: module)
-    adb_device_state.run_module()
+    assert hasattr(adb_device_state, "main")
+    try:
+        adb_device_state.main()
+    except SystemExit:
+        pass
+    assert module.result is not None
     assert module.result["changed"] is True
     assert "reboot" in module.result["msg"]
 
@@ -31,6 +36,11 @@ def test_run_module_shutdown(monkeypatch):
     monkeypatch.setattr(adb_device_state, "AnsibleModule", lambda **kwargs: DummyModule("shutdown"))
     module = DummyModule("shutdown")
     monkeypatch.setattr(adb_device_state, "AnsibleModule", lambda **kwargs: module)
-    adb_device_state.run_module()
+    assert hasattr(adb_device_state, "main")
+    try:
+        adb_device_state.main()
+    except SystemExit:
+        pass
+    assert module.result is not None
     assert module.result["changed"] is True
     assert "shutdown" in module.result["msg"]

@@ -21,7 +21,7 @@ from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.parsing i
 import shutil
 
 
-def run_module():
+def main():
     module = AnsibleModule(
         argument_spec=dict(
             device=dict(type="str", required=False),
@@ -60,11 +60,6 @@ def run_module():
 
     except Exception as e:
         module.fail_json(msg=str(e))
-
-
-def main():
-    run_module()
-
 
 if __name__ == '__main__':
     main()

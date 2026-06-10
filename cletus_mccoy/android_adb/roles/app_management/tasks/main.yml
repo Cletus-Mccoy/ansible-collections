@@ -1,0 +1,34 @@
+---
+# Bulk install apps
+- name: Bulk install APKs
+  adb_install:
+    apk_path: "{{ item }}"
+  loop: "{{ app_install_list | default([]) }}"
+  when: app_install_list is defined and app_action|default('') == 'bulk_install'
+
+# Bulk uninstall apps
+- name: Bulk uninstall packages
+  adb_uninstall:
+    package: "{{ item }}"
+  loop: "{{ app_remove_list | default([]) }}"
+  when: app_remove_list is defined and app_action|default('') == 'bulk_remove'
+
+# Targeted install
+- name: Targeted install
+  adb_install:
+    apk_path: "{{ targeted_apk_path }}"
+  when: app_action|default('') == 'targeted_install' and targeted_apk_path is defined
+
+# Targeted remove
+- name: Targeted remove
+  adb_uninstall:
+    package: "{{ targeted_package }}"
+  when: app_action|default('') == 'targeted_remove' and targeted_package is defined
+
+# Update apps (reinstall)
+- name: Bulk update APKs
+  adb_install:
+    apk_path: "{{ item }}"
+    update: true
+  loop: "{{ app_update_list | default([]) }}"
+  when: app_update_list is defined and app_action|default('') == 'bulk_update'

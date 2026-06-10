@@ -1,0 +1,44 @@
+---
+# Integration test for adb_files module
+- name: Create a test file on control node
+  ansible.builtin.copy:
+    dest: ./test_adb_files.txt
+    content: "integration test file"
+
+- name: Push file to device
+  cletus_mccoy.android_adb.adb_files:
+    action: push
+    src: ./test_adb_files.txt
+    dest: /data/local/tmp/test_adb_files.txt
+    device: "{{ adb_device }}"
+  register: push_result
+
+- name: Assert push succeeded
+  assert:
+    that:
+      - push_result.changed
+      - push_result.msg is defined
+
+- name: Pull file back from device
+  cletus_mccoy.android_adb.adb_files:
+    action: pull
+    src: /data/local/tmp/test_adb_files.txt
+    dest: ./test_adb_files_downloaded.txt
+    device: "{{ adb_device }}"
+  register: pull_result
+
+- name: Assert pull succeeded
+  assert:
+    that:
+      - pull_result.changed
+      - pull_result.msg is defined
+
+- name: Compare file contents
+  ansible.builtin.command: diff ./test_adb_files.txt ./test_adb_files_downloaded.txt
+  register: diff_result
+  changed_when: false
+
+- name: Assert files are identical
+  assert:
+    that:
+      - diff_result.rc == 0

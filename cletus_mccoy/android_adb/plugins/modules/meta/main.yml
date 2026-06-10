@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: Your Name
+  description: Run arbitrary adb shell commands on an Android device
+  company: ''
+  license: MIT
+  min_ansible_version: '2.9'
+  platforms:
+    - name: Android
+      versions:
+        - all
+  galaxy_tags:
+    - android
+    - adb
+    - shell
+    - device
+    - utilities
+
+dependencies: []

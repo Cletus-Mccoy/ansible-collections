@@ -1,0 +1,20 @@
+---
+- name: Test bulk set settings
+  include_role:
+    name: cletus_mccoy.android_adb.settings_management
+  vars:
+    settings_bulk:
+      - namespace: system
+        key: screen_brightness
+        value: 100
+      - namespace: secure
+        key: location_providers_allowed
+        value: gps
+
+- name: Test get settings
+  include_role:
+    name: cletus_mccoy.android_adb.settings_management
+  vars:
+    settings_get:
+      - namespace: global
+        key: airplane_mode_on

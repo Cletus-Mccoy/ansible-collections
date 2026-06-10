@@ -25,7 +25,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_shell
 import shutil
 
-def run_module():
+def main():
     module = AnsibleModule(
         argument_spec=dict(
             device=dict(type="str", required=False),
@@ -53,9 +53,6 @@ def run_module():
         module.exit_json(changed=True, msg=f"Device state changed: {state}")
     except Exception as e:
         module.fail_json(msg=str(e))
-
-def main():
-    run_module()
 
 if __name__ == '__main__':
     main()

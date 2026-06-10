@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  author: Kasper Daems
+  description: Manage application lifecycle on Android devices via ADB
+  license: MIT
+  min_ansible_version: '2.9'
+  platforms:
+    - name: Android
+      versions: [all]
+dependencies: []

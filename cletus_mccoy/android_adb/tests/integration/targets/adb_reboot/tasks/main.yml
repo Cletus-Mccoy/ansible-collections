@@ -1,0 +1,5 @@
+---
+# Integration test stub for adb_reboot module
+- name: Stub test for adb_reboot
+  debug:
+    msg: "adb_reboot integration test placeholder"

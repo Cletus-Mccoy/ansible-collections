@@ -1,0 +1,70 @@
+---
+# Apply declarative Android configuration.
+#
+# Friendly variables are translated into the correct subsystem:
+#   - screen timeout / stay-on  -> Settings database (adb_settings)
+#   - locale / timezone         -> system properties (adb_config)
+# plus free-form `android_settings` and `android_properties` lists.
+
+# --- Friendly Settings-DB values ------------------------------------------
+- name: Set screen-off timeout
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ android_config_device }}"
+    namespace: system
+    key: screen_off_timeout
+    value: "{{ android_screen_off_timeout }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  when: android_screen_off_timeout is not none
+
+- name: Set stay-on-while-charging
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ android_config_device }}"
+    namespace: global
+    key: stay_on_while_plugged_in
+    value: "{{ android_stay_on_while_plugged_in }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  when: android_stay_on_while_plugged_in is not none
+
+# --- Friendly system properties -------------------------------------------
+- name: Set locale
+  cletus_mccoy.android_adb.adb_config:
+    device: "{{ android_config_device }}"
+    action: set
+    key: persist.sys.locale
+    value: "{{ android_locale }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  when: android_locale is not none
+
+- name: Set timezone
+  cletus_mccoy.android_adb.adb_config:
+    device: "{{ android_config_device }}"
+    action: set
+    key: persist.sys.timezone
+    value: "{{ android_timezone }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  when: android_timezone is not none
+
+# --- Free-form Settings DB entries ----------------------------------------
+- name: Apply free-form settings
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ android_config_device }}"
+    namespace: "{{ item.namespace }}"
+    key: "{{ item.key }}"
+    value: "{{ item.value | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  loop: "{{ android_settings }}"
+  loop_control:
+    label: "{{ item.namespace }}/{{ item.key }}"
+
+# --- Free-form system properties ------------------------------------------
+- name: Apply free-form system properties
+  cletus_mccoy.android_adb.adb_config:
+    device: "{{ android_config_device }}"
+    action: set
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  loop: "{{ android_properties }}"
+  loop_control:
+    label: "{{ item.key }}"

@@ -1,0 +1,36 @@
+---
+# android_config role defaults
+#
+# Declarative device configuration. Two subsystems are supported:
+#   * Settings database (settings put) via the adb_settings module
+#   * System properties (setprop)        via the adb_config module
+#
+# Override these per device in host_vars/group_vars. Empty / null values are
+# skipped, so you only set what you care about.
+
+# Host that runs the adb binary (controller).
+adb_delegate_host: localhost
+
+# Device serial / IP:port the config modules target. Usually set from inventory.
+android_config_device: "{{ inventory_hostname }}"
+
+# --- Common, friendly settings (mapped to the Settings DB below) ----------
+# Screen-off timeout in milliseconds (Settings DB: system/screen_off_timeout).
+android_screen_off_timeout: null
+# Keep screen on while charging. Bitmask: 1=AC, 2=USB, 4=wireless, 3=AC+USB.
+# (Settings DB: global/stay_on_while_plugged_in)
+android_stay_on_while_plugged_in: null
+
+# --- Locale / timezone (system properties) --------------------------------
+# e.g. "en-US" (system property: persist.sys.locale)
+android_locale: null
+# e.g. "Europe/Brussels" (system property: persist.sys.timezone)
+android_timezone: null
+
+# --- Free-form settings -----------------------------------------------------
+# Arbitrary Settings DB entries. Each item: {namespace, key, value, state?}
+#   state defaults to "present"; use "absent" to delete a key.
+android_settings: []
+
+# Arbitrary system properties. Each item: {key, value}
+android_properties: []

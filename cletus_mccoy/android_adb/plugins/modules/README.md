@@ -1,4 +1,3 @@
-
 # Android ADB Modules
 
 This directory contains Ansible modules for managing Android devices over ADB.
@@ -67,6 +66,12 @@ This directory contains Ansible modules for managing Android devices over ADB.
   adb_screenrecord:
     path: /sdcard/demo.mp4
     duration: 15
+
+- name: Record screen for 5 seconds
+  cletus_mccoy.android_adb.adb_screenrecord:
+    path: /tmp/screenrecord.mp4
+    duration: 5
+    device: "{{ adb_device }}"
 ```
 
 ### adb_forward
