@@ -1,34 +1,60 @@
 ---
-# Bulk install apps
+# Manage APKs on a device. All adb_* modules are subprocess-based and run the
+# adb binary on the controller, so they are delegated to adb_delegate_host
+# (localhost) and given an explicit device — consistent with android_config and
+# settings_management.
+#
+# List items may be a bare string or a dict:
+#   install/update item: "app.apk"  OR  {apk_path, package, version}
+#   remove item:         "com.pkg"  OR  {package}
+# Supplying package (+version) on install enables idempotency.
+
 - name: Bulk install APKs
-  adb_install:
-    apk_path: "{{ item }}"
+  cletus_mccoy.android_adb.adb_install:
+    device: "{{ app_device }}"
+    apk_path: "{{ item.apk_path | default(item) }}"
+    package: "{{ item.package | default(omit) }}"
+    version: "{{ item.version | default(omit) }}"
+  delegate_to: "{{ adb_delegate_host }}"
   loop: "{{ app_install_list | default([]) }}"
-  when: app_install_list is defined and app_action|default('') == 'bulk_install'
+  loop_control:
+    label: "{{ item.apk_path | default(item) }}"
+  when: app_install_list | default([]) | length > 0 and app_action | default('') == 'bulk_install'
 
-# Bulk uninstall apps
 - name: Bulk uninstall packages
-  adb_uninstall:
-    package: "{{ item }}"
+  cletus_mccoy.android_adb.adb_uninstall:
+    device: "{{ app_device }}"
+    package: "{{ item.package | default(item) }}"
+  delegate_to: "{{ adb_delegate_host }}"
   loop: "{{ app_remove_list | default([]) }}"
-  when: app_remove_list is defined and app_action|default('') == 'bulk_remove'
+  loop_control:
+    label: "{{ item.package | default(item) }}"
+  when: app_remove_list | default([]) | length > 0 and app_action | default('') == 'bulk_remove'
 
-# Targeted install
 - name: Targeted install
-  adb_install:
+  cletus_mccoy.android_adb.adb_install:
+    device: "{{ app_device }}"
     apk_path: "{{ targeted_apk_path }}"
-  when: app_action|default('') == 'targeted_install' and targeted_apk_path is defined
+    package: "{{ targeted_package | default(omit) }}"
+    version: "{{ targeted_version | default(omit) }}"
+  delegate_to: "{{ adb_delegate_host }}"
+  when: app_action | default('') == 'targeted_install' and targeted_apk_path | default('') | length > 0
 
-# Targeted remove
 - name: Targeted remove
-  adb_uninstall:
+  cletus_mccoy.android_adb.adb_uninstall:
+    device: "{{ app_device }}"
     package: "{{ targeted_package }}"
-  when: app_action|default('') == 'targeted_remove' and targeted_package is defined
+  delegate_to: "{{ adb_delegate_host }}"
+  when: app_action | default('') == 'targeted_remove' and targeted_package | default('') | length > 0
 
-# Update apps (reinstall)
+# Update = reinstall the given APK(s). No version is passed, so 'adb install -r'
+# always runs and replaces the existing app.
 - name: Bulk update APKs
-  adb_install:
-    apk_path: "{{ item }}"
-    update: true
+  cletus_mccoy.android_adb.adb_install:
+    device: "{{ app_device }}"
+    apk_path: "{{ item.apk_path | default(item) }}"
+  delegate_to: "{{ adb_delegate_host }}"
   loop: "{{ app_update_list | default([]) }}"
-  when: app_update_list is defined and app_action|default('') == 'bulk_update'
+  loop_control:
+    label: "{{ item.apk_path | default(item) }}"
+  when: app_update_list | default([]) | length > 0 and app_action | default('') == 'bulk_update'

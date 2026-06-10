@@ -52,10 +52,20 @@ Android device configuration lives in **two different places**:
 | Subsystem | Command | Module | Notes |
 |---|---|---|---|
 | System properties | `getprop`/`setprop` | `adb_config` (action `get`/`set`) | Most `ro.*` and `persist.*` writes need root |
-| Settings database | `settings get/put/delete` | `adb_settings` | `system`/`global` writable by shell user; `secure` needs `WRITE_SECURE_SETTINGS` granted to an app |
+| Settings database | `settings get/put/delete` | `adb_settings` | Write permission is version-dependent — see below |
 
 Use `adb_settings` for user-facing settings (screen timeout, locale toggles, etc.)
 and `adb_config` for system properties.
+
+> **Android 16+ permission note.** On older Android the ADB shell could write
+> `system`/`global` settings without root. On newer releases (confirmed on
+> Android 16) `com.android.shell` is **not** granted `WRITE_SETTINGS`, so
+> `settings put system` fails with `SecurityException: ... WRITE_SETTINGS`. The
+> module reports this faithfully (`failed`, `changed=false`). To write settings on
+> such devices you must either be **rooted**, or `pm grant <app>` the relevant
+> permission (`WRITE_SETTINGS` / `WRITE_SECURE_SETTINGS`) to a helper app. Plan
+> declarative `adb_settings`/`android_config` accordingly: rooted displays can take
+> any setting; non-rooted daily-drivers are effectively read-only for system settings.
 
 ## Notes for downstream / integration use (v0.2.0)
 

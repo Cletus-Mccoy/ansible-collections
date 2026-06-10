@@ -21,12 +21,20 @@ options:
   namespace:
     description:
       - Settings namespace.
-      - C(system) and C(global) are writable by the ADB shell user without root.
-      - C(secure) requires the C(WRITE_SECURE_SETTINGS) permission, which can only
-        be granted to an installed app via
-        C(pm grant <pkg> android.permission.WRITE_SECURE_SETTINGS). The ADB shell
-        itself (UID 2000) can already write C(secure) on most builds, but writes
-        may be rejected on hardened/managed devices.
+      - "Permission reality varies by Android version. On older releases the ADB
+        shell (C(com.android.shell), UID 2000) could write C(system)/C(global)
+        without root. On newer releases (observed on Android 16) the shell user is
+        B(not) granted C(WRITE_SETTINGS), so C(settings put system) is rejected
+        with C(SecurityException: ... was not granted WRITE_SETTINGS). The module
+        issues the write correctly and surfaces the device's error faithfully
+        (C(failed), C(changed=false))."
+      - "C(secure) requires C(WRITE_SECURE_SETTINGS); C(system) on Android 16+
+        requires C(WRITE_SETTINGS). Either way the permission must be granted to an
+        app via C(pm grant <pkg> <permission>) (the ADB shell can run the grant,
+        but it is the app that receives it), or the device must be rooted."
+      - "Practical guidance: rooted devices (e.g. a dedicated display) can write
+        any namespace; non-rooted daily-driver devices may only reliably read, plus
+        write keys their granted helper app is permitted to change."
     required: true
     type: str
     choices: [system, secure, global]

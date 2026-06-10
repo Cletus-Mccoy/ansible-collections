@@ -15,6 +15,25 @@ author:
     - Kasper Daems
 version_added: '1.0.0'
 '''  # noqa
+
+EXAMPLES = r'''
+- name: Gather Android device info
+  cletus_mccoy.android_adb.adb_device_info:
+    device: "192.168.1.50:5555"
+  register: info
+'''
+
+RETURN = r'''
+android_device_info:
+  description: Parsed device properties plus battery, storage and network output.
+  type: dict
+  returned: success
+changed:
+  description: Always false (read-only).
+  type: bool
+  returned: always
+'''
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_shell
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.parsing import parse_getprop, extract_device_info

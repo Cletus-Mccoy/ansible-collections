@@ -51,8 +51,8 @@ publish: build
 ifndef GALAXY_TOKEN
 	$(error GALAXY_TOKEN is not set — add it to .env)
 endif
-	$(PYTHON) ../../.galaxy-namespace.py "$(GALAXY_TOKEN)"
-	$(GALAXY) collection publish *-android_adb-$(VERSION).tar.gz --token $(GALAXY_TOKEN)
+	@$(PYTHON) ../../.galaxy-namespace.py "$(GALAXY_TOKEN)"
+	@$(GALAXY) collection publish *-android_adb-$(VERSION).tar.gz --token $(GALAXY_TOKEN)
 
 # Tag, push, and publish — Usage: make release VERSION=0.2.0
 release:

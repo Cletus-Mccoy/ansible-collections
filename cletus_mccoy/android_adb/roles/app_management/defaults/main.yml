@@ -1,0 +1,22 @@
+---
+# app_management role defaults
+
+# Host that runs the adb binary (controller). adb_* modules are delegated here.
+adb_delegate_host: localhost
+
+# Device serial / IP:port the adb_* modules target. Usually set from inventory.
+app_device: "{{ inventory_hostname }}"
+
+# Which operation to perform:
+#   bulk_install | bulk_remove | bulk_update | targeted_install | targeted_remove
+app_action: ""
+
+# Bulk lists. Items may be a bare string or a dict (see tasks/main.yml).
+app_install_list: []
+app_remove_list: []
+app_update_list: []
+
+# Targeted operation parameters.
+targeted_apk_path: ""
+targeted_package: ""
+targeted_version: ""

@@ -20,7 +20,30 @@ author:
     - Kasper Daems
 version_added: '1.0.0'
 '''  # noqa
-#!/usr/bin/python
+
+EXAMPLES = r'''
+- name: List user-installed packages
+  cletus_mccoy.android_adb.adb_packages:
+    device: "192.168.1.50:5555"
+  register: pkgs
+
+- name: List all packages including system
+  cletus_mccoy.android_adb.adb_packages:
+    include_system: true
+'''
+
+RETURN = r'''
+packages:
+  description: List of installed package names.
+  type: list
+  elements: str
+  returned: success
+changed:
+  description: Always false (read-only).
+  type: bool
+  returned: always
+'''
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_shell
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.parsing import parse_packages

@@ -21,6 +21,24 @@ author:
     - Kasper Daems
 '''
 
+EXAMPLES = r'''
+- name: Reboot the device
+  cletus_mccoy.android_adb.adb_device_state:
+    state: reboot
+    device: "192.168.1.50:5555"
+'''
+
+RETURN = r'''
+changed:
+  description: Always true on success (the requested state change is an action).
+  type: bool
+  returned: always
+msg:
+  description: Informational message.
+  type: str
+  returned: always
+'''
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_shell
 import shutil
