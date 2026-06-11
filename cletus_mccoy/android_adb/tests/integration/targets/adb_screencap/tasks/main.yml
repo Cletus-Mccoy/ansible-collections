@@ -1,0 +1,28 @@
+---
+# Integration test for adb_screencap.
+
+- name: Capture a screenshot to the controller
+  cletus_mccoy.android_adb.adb_screencap:
+    device: "{{ adb_device }}"
+    dest: /tmp/itest_screencap.png
+  register: cap
+
+- name: Stat the written file
+  ansible.builtin.stat:
+    path: /tmp/itest_screencap.png
+  delegate_to: localhost
+  register: cap_stat
+
+- name: Assert a non-trivial PNG was written
+  assert:
+    that:
+      - cap.changed == true
+      - cap.size > 100
+      - cap_stat.stat.exists
+      - cap_stat.stat.size == cap.size
+
+- name: Clean up
+  ansible.builtin.file:
+    path: /tmp/itest_screencap.png
+    state: absent
+  delegate_to: localhost

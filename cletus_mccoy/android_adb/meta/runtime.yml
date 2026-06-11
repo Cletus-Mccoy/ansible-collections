@@ -8,6 +8,7 @@ requires_ansible: '>=2.9.10'
 # target the whole collection at once (e.g. set adb_path/device for all adb_*).
 action_groups:
   adb:
+    - adb_app_pref
     - adb_config
     - adb_connect
     - adb_device_info
@@ -20,9 +21,13 @@ action_groups:
     - adb_packages
     - adb_pair
     - adb_reboot
+    - adb_root
+    - adb_screencap
     - adb_screenrecord
     - adb_settings
     - adb_shell
+    - adb_ui_dump
+    - adb_ui_tap
     - adb_uninstall
 
 # Content that Ansible needs to load from another location or that has

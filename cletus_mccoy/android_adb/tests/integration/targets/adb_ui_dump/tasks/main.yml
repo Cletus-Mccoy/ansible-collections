@@ -1,0 +1,15 @@
+---
+# Integration test for adb_ui_dump.
+
+- name: Dump the current UI hierarchy
+  cletus_mccoy.android_adb.adb_ui_dump:
+    device: "{{ adb_device }}"
+  register: ui
+
+- name: Assert XML and parsed nodes were returned
+  assert:
+    that:
+      - ui.changed == false
+      - ui.xml is search('^\\s*<')
+      - ui.nodes | length > 0
+      - ui.nodes | selectattr('center', 'ne', None) | list | length > 0

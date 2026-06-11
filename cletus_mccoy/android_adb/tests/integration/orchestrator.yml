@@ -5,6 +5,11 @@
 
 - import_playbook: targets/adb_files/playbook.yml
 - import_playbook: targets/adb_shell/playbook.yml
+- import_playbook: targets/adb_root/playbook.yml
+- import_playbook: targets/adb_app_pref/playbook.yml
+- import_playbook: targets/adb_screencap/playbook.yml
+- import_playbook: targets/adb_ui_dump/playbook.yml
+- import_playbook: targets/adb_ui_tap/playbook.yml
 - import_playbook: targets/adb_config/playbook.yml
 - import_playbook: targets/adb_settings/playbook.yml
 - import_playbook: targets/adb_device_info/playbook.yml

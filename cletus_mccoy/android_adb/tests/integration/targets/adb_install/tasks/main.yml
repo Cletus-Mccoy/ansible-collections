@@ -3,11 +3,6 @@
     device: "{{ adb_device }}"
     command: "mkdir -p /data/local/tmp"
 
-- name: Ensure /data/local/tmp exists on device
-  cletus_mccoy.android_adb.adb_shell:
-    device: "{{ adb_device }}"
-    command: "mkdir -p /data/local/tmp"
-
 - name: Upload HelloWorldSelfAware APK to device
   cletus_mccoy.android_adb.adb_files:
     action: push
@@ -25,22 +20,16 @@
 
 - name: Assert install succeeded or skip if restricted
   block:
+    # Success means not failed. A second run is idempotent (changed=false) and is
+    # still a pass — so don't require 'changed'.
     - assert:
         that:
           - install_apk_result is not failed
-          - install_apk_result.changed
         fail_msg: "Install did not succeed for HelloWorldSelfAware.apk. Reason: {{ install_apk_result.msg | default('No message') }}"
   rescue:
     - debug:
         msg: "Skipping install test: device does not allow APK install (INSTALL_FAILED_USER_RESTRICTED or similar). Reason: {{ install_apk_result.msg | default('No message') }}"
     - meta: end_play
-
-- name: Assert install failed as expected
-  assert:
-    that:
-      - install_result.failed
-      - install_result.msg is defined
-    fail_msg: "Install did not fail as expected for HelloWorldSelfAware.apk"
 
 - name: Try to install with missing apk_path (should fail)
   cletus_mccoy.android_adb.adb_install:

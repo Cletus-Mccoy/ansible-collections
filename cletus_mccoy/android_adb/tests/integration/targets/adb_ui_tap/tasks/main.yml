@@ -1,0 +1,42 @@
+---
+# Integration test for adb_ui_tap.
+# Side-effect-free: resolution is exercised in check mode (no real tap is sent),
+# plus a negative no-match assertion. The unit tests cover the 'input tap' wiring.
+
+- name: Dump the UI to pick a real on-screen label
+  cletus_mccoy.android_adb.adb_ui_dump:
+    device: "{{ adb_device }}"
+  register: ui
+
+- name: Choose the first node that has both text and a usable center
+  ansible.builtin.set_fact:
+    tap_text: "{{ (ui.nodes | selectattr('text', 'ne', '') | selectattr('center', 'ne', None) | map(attribute='text') | list | first) | default('') }}"
+
+- name: Resolve the node center without tapping (check mode)
+  cletus_mccoy.android_adb.adb_ui_tap:
+    device: "{{ adb_device }}"
+    text: "{{ tap_text }}"
+  check_mode: true
+  register: tap_dry
+  when: tap_text | length > 0
+
+- name: Assert the selector resolved to a coordinate
+  assert:
+    that:
+      - tap_dry.matched >= 1
+      - tap_dry.x is number
+      - tap_dry.y is number
+  when: tap_text | length > 0
+
+- name: Negative — a non-existent selector fails
+  cletus_mccoy.android_adb.adb_ui_tap:
+    device: "{{ adb_device }}"
+    text: "__ansible_itest_no_such_node__"
+  register: tap_miss
+  ignore_errors: true
+
+- name: Assert the no-match case failed cleanly
+  assert:
+    that:
+      - tap_miss is failed
+      - "'no UI node matched' in tap_miss.msg"

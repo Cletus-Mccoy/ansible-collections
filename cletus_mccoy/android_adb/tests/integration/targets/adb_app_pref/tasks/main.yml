@@ -1,0 +1,119 @@
+---
+# Integration test for adb_app_pref. Requires root (run adb_root first).
+# Operates on Fully Kiosk (de.ozerov.fully): adds then removes a harmless test
+# key, asserting idempotency AND that the file's SELinux context is preserved.
+# A backup is taken first for safety.
+
+- name: Set test fixtures
+  ansible.builtin.set_fact:
+    fully_pkg: de.ozerov.fully
+    fully_file: de.ozerov.fully_preferences.xml
+    fully_prefs: /data/data/de.ozerov.fully/shared_prefs/de.ozerov.fully_preferences.xml
+    itest_key: ansible_itest_flag
+
+- name: Back up the prefs file (safety net)
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: "cp '{{ fully_prefs }}' /data/local/tmp/fully_prefs_backup.xml"
+
+- name: Record the original SELinux context + owner
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: "ls -Z '{{ fully_prefs }}'"
+  register: ctx_before
+
+- name: Multiple shared_prefs files without 'file' fails clearly
+  cletus_mccoy.android_adb.adb_app_pref:
+    device: "{{ adb_device }}"
+    package: "{{ fully_pkg }}"
+    key: "{{ itest_key }}"
+    type: boolean
+    value: "true"
+  register: nofile
+  ignore_errors: true
+
+- name: Assert the multi-file guard fired
+  assert:
+    that:
+      - nofile is failed
+      - "'specify' in nofile.msg"
+
+- name: Add a harmless boolean test key
+  cletus_mccoy.android_adb.adb_app_pref:
+    device: "{{ adb_device }}"
+    package: "{{ fully_pkg }}"
+    file: "{{ fully_file }}"
+    key: "{{ itest_key }}"
+    type: boolean
+    value: "true"
+  register: add1
+
+- name: Re-add the same value (idempotent)
+  cletus_mccoy.android_adb.adb_app_pref:
+    device: "{{ adb_device }}"
+    package: "{{ fully_pkg }}"
+    file: "{{ fully_file }}"
+    key: "{{ itest_key }}"
+    type: boolean
+    value: "true"
+  register: add2
+
+- name: Assert add changed then was idempotent
+  assert:
+    that:
+      - add1.changed == true
+      - add1.previous_value is none
+      - add2.changed == false
+
+- name: Record SELinux context after the in-place write
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: "ls -Z '{{ fully_prefs }}'"
+  register: ctx_after
+
+- name: Assert inode owner + SELinux context were preserved
+  assert:
+    that:
+      - ctx_after.stdout == ctx_before.stdout
+    fail_msg: "context changed!\nbefore: {{ ctx_before.stdout }}\nafter:  {{ ctx_after.stdout }}"
+
+- name: Remove the test key
+  cletus_mccoy.android_adb.adb_app_pref:
+    device: "{{ adb_device }}"
+    package: "{{ fully_pkg }}"
+    file: "{{ fully_file }}"
+    key: "{{ itest_key }}"
+    state: absent
+  register: rm1
+
+- name: Assert removal changed
+  assert:
+    that:
+      - rm1.changed == true
+
+- name: Verify the file is still intact (a known key survives)
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: "grep -c 'name=\"remoteAdmin\"' '{{ fully_prefs }}'"
+  register: intact
+
+- name: Assert original content preserved and test key gone
+  assert:
+    that:
+      - intact.stdout | trim | int >= 1
+
+- name: Confirm the test key is no longer present
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: "grep -c '{{ itest_key }}' '{{ fully_prefs }}' || true"
+  register: gone
+
+- name: Assert test key removed
+  assert:
+    that:
+      - gone.stdout | trim | int == 0
+
+- name: Clean up the backup
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: "rm -f /data/local/tmp/fully_prefs_backup.xml"

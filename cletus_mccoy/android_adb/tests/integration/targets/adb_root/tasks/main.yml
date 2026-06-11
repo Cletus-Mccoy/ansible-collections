@@ -1,0 +1,53 @@
+---
+# Integration test for adb_root. Requires a rooted device with adb-root support
+# (userdebug/eng build, e.g. a phh-Treble GSI) reachable at adb_device.
+
+- name: Ensure adbd is running as root
+  cletus_mccoy.android_adb.adb_root:
+    device: "{{ adb_device }}"
+    state: root
+  register: root_ensure
+
+- name: Assert root achieved
+  assert:
+    that:
+      - root_ensure is not failed
+      - root_ensure.root_state == 'root'
+    fail_msg: "adb root failed (is 'Rooted debugging' enabled?): {{ root_ensure.msg | default('') }}"
+
+- name: Re-assert root (idempotent on adbd's report)
+  cletus_mccoy.android_adb.adb_root:
+    device: "{{ adb_device }}"
+    state: root
+  register: root_again
+
+- name: Assert second root reports no change
+  assert:
+    that:
+      - root_again.changed == false
+
+- name: Drop to non-root (exercises transport reconnect + stale prune)
+  cletus_mccoy.android_adb.adb_root:
+    device: "{{ adb_device }}"
+    state: unroot
+  register: unroot
+
+- name: Assert unroot toggled and reconnected
+  assert:
+    that:
+      - unroot.changed == true
+      - unroot.reconnected == true
+      - unroot.root_state == 'unroot'
+
+- name: Restore root (and reconnect)
+  cletus_mccoy.android_adb.adb_root:
+    device: "{{ adb_device }}"
+    state: root
+  register: reroot
+
+- name: Assert root restored and reconnected
+  assert:
+    that:
+      - reroot.changed == true
+      - reroot.reconnected == true
+      - reroot.root_state == 'root'

@@ -1,5 +1,26 @@
 # TODO for android_adb Collection
 
+## Pre-existing integration-test failures (found 2026-06-12 on a rooted phh-Treble GSI)
+These targets carry environment-dependent assumptions that break on a rooted
+device. They were masked before because the orchestrator died early at adb_config
+(a failed host is dropped from later plays). Unrelated to the 0.3.0 modules.
+- [x] `adb_config` — asserted a `persist.*` set is *denied*; under root it succeeds
+      (and is idempotent when the value already matches). FIXED: assert now accepts
+      "denied-with-message (non-root) OR applied cleanly (root)".
+- [x] `adb_install` — referenced an undefined `install_result` var and required
+      `changed=true` (breaks on idempotent re-runs). FIXED: removed the bogus task;
+      success = "not failed".
+- [ ] `adb_intent` — assumes `am start -a com.example.INVALID_ACTION` exits non-zero;
+      on this GSI's `am` an unresolvable action prints an error but exits 0, so the
+      module does not "fail" → "Intent did not fail as expected" assertion fails.
+      Fix: use a guaranteed-failing invocation (e.g. `-n pkg/.NoSuchActivity`) or make
+      the assertion device-aware.
+- [ ] Verify the orchestrator tail (`adb_logcat`, `adb_packages`, `adb_uninstall`)
+      reaches green once `adb_intent` is fixed — these were never reached on this
+      device (masked behind the earlier failures).
+- [ ] Ties into existing item below: "Add adaptive test logic: detect device
+      capabilities (root, settings put) and branch/skip accordingly."
+
 ## Immediate Tasks
 - [ ] Replace all remaining stub integration tests with meaningful tests for each module
 - [ ] Verify all module integration tests pass and cover basic functionality

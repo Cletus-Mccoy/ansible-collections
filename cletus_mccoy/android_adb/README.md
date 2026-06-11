@@ -14,10 +14,14 @@ Ansible collection to manage Android devices over ADB.
 - Idempotent wireless connect/disconnect
 - Device reboot with wait-for-boot
 - Port forwarding, screen recording, intents, device pairing, logcat
+- **Root toggling** (`adb root`/`unroot`) with auto-reconnect + stale-entry pruning
+- **App SharedPreferences editing** (SELinux/inode-preserving)
+- **UI automation**: screenshot, view-hierarchy dump, tap-by-text/resource-id
 
 ## Modules
+- **adb_app_pref** — set/remove a key in an app's `shared_prefs` XML, inode/context-preserving (root)
 - adb_config — system properties + settings (get/set/backup/validate)
-- adb_connect — wireless connect/disconnect (idempotent)
+- adb_connect — wireless connect/disconnect (idempotent; optional `prune_offline`)
 - adb_device_info
 - adb_device_state
 - adb_files
@@ -28,9 +32,13 @@ Ansible collection to manage Android devices over ADB.
 - adb_packages
 - adb_pair
 - adb_reboot — reboot with optional `wait`/`wait_timeout`
+- **adb_root** — restart adbd as root/non-root, reconnect wireless + prune stale `offline` entries
+- **adb_screencap** — capture a PNG screenshot to the controller
 - adb_screenrecord
 - **adb_settings** — Settings database get/put/delete (idempotent)
 - adb_shell
+- **adb_ui_dump** — dump the current UI view hierarchy (XML + parsed nodes)
+- **adb_ui_tap** — tap by text/resource-id/content-desc or raw coordinates
 - adb_uninstall — APK uninstall (idempotent)
 
 ## Roles
@@ -67,16 +75,66 @@ and `adb_config` for system properties.
 > declarative `adb_settings`/`android_config` accordingly: rooted displays can take
 > any setting; non-rooted daily-drivers are effectively read-only for system settings.
 
-## Notes for downstream / integration use (v0.2.0)
+### Settings namespace & privilege matrix
+
+`adb_settings` only reaches the **AOSP Settings provider**. What actually works
+depends on the namespace and the device's privilege level:
+
+| Write | Module | Root needed? | Notes |
+|---|---|---|---|
+| `settings put system <k>` | `adb_settings` | Yes on Android 16+ | Needs `WRITE_SETTINGS` (granted to an app) or root — see the note above |
+| `settings put secure <k>` | `adb_settings` | Sometimes | `WRITE_SECURE_SETTINGS`; but some keys work root-free… |
+| `settings put secure always_on_vpn_app` / `always_on_vpn_lockdown` | `adb_settings` | **No** | Works from the ADB shell without root — handy for VPN lockdown |
+| `setprop persist.* …` | `adb_config` (set) | **Yes** | `persist.*` / most `ro.*` writes require root |
+| LineageOS-specific settings | — | n/a | Live in a separate `lineagesettings` provider that `settings put` **does not** reach |
+
+### Root path on userdebug / GSI builds
+
+On rooted phh-Treble GSIs (and other userdebug builds), `adb root` is the reliable
+root path — prefer the **`adb_root`** module over `su -c` in `adb_shell`. Magisk
+`su` is often unreliable there (it competes with phh's `/system/xbin/su` and can
+land in an "Abnormal State", denying the shell without prompting). `adb root` needs
+Developer options → **"Rooted debugging"** enabled; otherwise adbd reports
+*"ADB Root access is disabled by system setting"* and `adb_root` fails with that
+guidance.
+
+`adb root`/`unroot`/`tcpip` all drop the current TCP transport, leaving a stale
+`offline` entry next to the live device in `adb devices`. `adb_root` reconnects and
+prunes those automatically; `adb_connect` gained `prune_offline: true` for the same
+cleanup.
+
+### Persistent ADB across reboots
+
+The reliable, no-re-pair combo on a rooted device:
+
+1. Developer options → **"Rooted debugging"** (enables `adb root`).
+2. `setprop persist.adb.tcp.port 5555` (via `adb_config`, needs root).
+3. Persist the controller's key in `/data/misc/adb/adb_keys`.
+
+This survives reboot with no re-pair, and the `android_probe` role's 37000–44999
+port scan then correctly falls back to the fixed `adb_port`.
+
+### UI automation
+
+First-time setup is often unavoidably UI-driven (Tailscale login, toggling
+"Rooted debugging", etc.). Use `adb_screencap` to see the screen, `adb_ui_dump` to
+read the view hierarchy, and `adb_ui_tap` to tap by `text`/`resource_id` or raw
+coordinates. **Force-stop foreground-stealing overlay apps first** (e.g. a
+rotation-lock app) — they grab focus and fight UI automation.
+
+## Notes for downstream / integration use (v0.3.0)
 
 - Modules shell out to `adb` on the controller, so target them with
   `delegate_to: localhost` (or set `adb_delegate_host`) while the play host is the
   Android device. Use `gather_facts: no` and `serial: 1` for Wi-Fi ADB hosts.
-- **Available and idempotent in v0.2.0:** `adb_connect`, `adb_install`,
-  `adb_uninstall`, `adb_settings`, `adb_config` (set), `adb_forward`,
-  `adb_reboot` (with wait). Roles `adb_bootstrap` and `android_config` are filled in.
+- **Available and idempotent:** `adb_connect`, `adb_install`, `adb_uninstall`,
+  `adb_settings`, `adb_config` (set), `adb_forward`, `adb_reboot` (with wait),
+  `adb_app_pref`. `adb_root` is idempotent on adbd's own report. Roles
+  `adb_bootstrap` and `android_config` are filled in.
 - **Action modules (not idempotent by design):** `adb_intent`, `adb_shell`,
-  `adb_screenrecord`, `adb_device_state`, `adb_logcat`, `adb_pair`.
+  `adb_screenrecord`, `adb_screencap`, `adb_ui_dump`, `adb_ui_tap`,
+  `adb_device_state`, `adb_logcat`, `adb_pair`.
+- **Require root:** `adb_app_pref` (and `adb_root` itself, which enables it).
 
 ## Example
 

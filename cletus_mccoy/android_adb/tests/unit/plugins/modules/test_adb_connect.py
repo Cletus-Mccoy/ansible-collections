@@ -76,3 +76,37 @@ def test_absent_disconnects_when_connected():
         ],
     )
     assert res['changed'] is True
+
+
+DEVICES_WITH_STALE = (
+    "List of devices attached\n"
+    "192.168.1.100:37011\tdevice\n"
+    "192.168.1.100:41999\toffline\n"
+)
+
+
+def test_prune_offline_when_already_connected():
+    res = run_module(
+        {'ip': '192.168.1.100', 'port': 37011, 'state': 'present',
+         'prune_offline': True},
+        run_side_effect=[
+            DummyResult(stdout=DEVICES_WITH_STALE),  # _is_connected
+            DummyResult(stdout=DEVICES_WITH_STALE),  # _offline_serials
+            DummyResult(stdout='disconnected'),       # disconnect stale
+        ],
+    )
+    assert res['pruned'] == ['192.168.1.100:41999']
+    assert res['changed'] is True
+
+
+def test_prune_offline_none_to_prune():
+    res = run_module(
+        {'ip': '192.168.1.100', 'port': 37011, 'state': 'present',
+         'prune_offline': True},
+        run_side_effect=[
+            DummyResult(stdout=DEVICES_CONNECTED),  # _is_connected
+            DummyResult(stdout=DEVICES_CONNECTED),  # _offline_serials (none)
+        ],
+    )
+    assert res['pruned'] == []
+    assert res['changed'] is False

@@ -26,6 +26,15 @@ options:
     type: str
     choices: [present, absent]
     default: present
+  prune_offline:
+    description:
+      - Before connecting, C(adb disconnect) any entries currently in the
+        C(offline) state. These stale transports are commonly left behind after
+        an C(adb root)/C(unroot)/C(tcpip) toggle and show up alongside the live
+        device. Only applies when O(state=present).
+    required: false
+    type: bool
+    default: false
   adb_path:
     description:
       - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
@@ -58,6 +67,11 @@ msg:
   description: Result message from adb.
   returned: always
   type: str
+pruned:
+  description: Stale C(offline) entries that were disconnected (when O(prune_offline=true)).
+  returned: when prune_offline is true
+  type: list
+  elements: str
 '''
 
 from ansible.module_utils.basic import AnsibleModule
@@ -81,6 +95,22 @@ def _is_connected(adb_path, target):
     return False
 
 
+def _offline_serials(adb_path):
+    """Return serials currently shown as ``offline`` in ``adb devices``."""
+    proc = subprocess.run(
+        [adb_path, "devices"], capture_output=True, text=True, timeout=10
+    )
+    offline = []
+    for line in proc.stdout.splitlines()[1:]:
+        line = line.strip()
+        if "\t" not in line:
+            continue
+        serial, state = (p.strip() for p in line.split("\t", 1))
+        if state == "offline":
+            offline.append(serial)
+    return offline
+
+
 def main():
     module = AnsibleModule(
         argument_spec=dict(
@@ -88,6 +118,7 @@ def main():
             port=dict(type="int", required=True),
             state=dict(type="str", required=False, default="present",
                        choices=["present", "absent"]),
+            prune_offline=dict(type="bool", required=False, default=False),
             adb_path=dict(type="str", required=False, default=None),
         ),
         supports_check_mode=True,
@@ -106,18 +137,29 @@ def main():
         already_connected = _is_connected(adb_path, target)
 
         if state == "present":
+            pruned = []
+            if module.params.get("prune_offline"):
+                for serial in _offline_serials(adb_path):
+                    if not module.check_mode:
+                        subprocess.run([adb_path, "disconnect", serial],
+                                       capture_output=True, text=True, timeout=10)
+                    pruned.append(serial)
+
             if already_connected:
-                module.exit_json(changed=False, msg=f"already connected to {target}")
+                module.exit_json(changed=bool(pruned),
+                                 msg=f"already connected to {target}", pruned=pruned)
             if module.check_mode:
-                module.exit_json(changed=True, msg=f"would connect to {target}")
+                module.exit_json(changed=True, msg=f"would connect to {target}",
+                                 pruned=pruned)
             proc = subprocess.run(
                 [adb_path, "connect", target],
                 capture_output=True, text=True, timeout=10,
             )
             out = (proc.stdout or "") + (proc.stderr or "")
             if proc.returncode == 0 and ("connected to" in proc.stdout or "already connected" in proc.stdout):
-                module.exit_json(changed=True, msg=proc.stdout.strip())
-            module.fail_json(msg=out.strip() or "adb connect failed", changed=False)
+                module.exit_json(changed=True, msg=proc.stdout.strip(), pruned=pruned)
+            module.fail_json(msg=out.strip() or "adb connect failed", changed=False,
+                             pruned=pruned)
         else:  # absent
             if not already_connected:
                 module.exit_json(changed=False, msg=f"{target} not connected")
