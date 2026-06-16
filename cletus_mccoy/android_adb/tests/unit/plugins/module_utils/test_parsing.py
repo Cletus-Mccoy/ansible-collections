@@ -1,6 +1,41 @@
 import pytest
 
-from parsing import parse_getprop, extract_device_info, parse_packages
+from parsing import (
+    parse_getprop,
+    extract_device_info,
+    parse_packages,
+    parse_awake_state,
+    parse_adbd_root,
+)
+
+
+class TestParseAwakeState:
+    def test_awake(self):
+        assert parse_awake_state("  mWakefulness=Awake\n") is True
+
+    def test_asleep(self):
+        assert parse_awake_state("mWakefulness=Asleep") is False
+
+    def test_display_state_on(self):
+        assert parse_awake_state("Display Power: state=ON") is True
+
+    def test_display_state_off(self):
+        assert parse_awake_state("Display Power: state=OFF") is False
+
+    def test_unknown(self):
+        assert parse_awake_state("") is None
+        assert parse_awake_state("nothing useful") is None
+
+
+class TestParseAdbdRoot:
+    def test_root(self):
+        assert parse_adbd_root("uid=0(root) gid=0(root)") is True
+
+    def test_non_root(self):
+        assert parse_adbd_root("uid=2000(shell) gid=2000(shell)") is False
+
+    def test_empty(self):
+        assert parse_adbd_root("") is False
 
 SAMPLE_GETPROP = """\
 [ro.product.manufacturer]: [Google]

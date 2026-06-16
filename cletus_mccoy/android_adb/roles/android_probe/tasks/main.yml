@@ -51,80 +51,43 @@
   debug:
     msg: "Port discovery: using {{ adb_port }}"
 
-- name: Connect to device via ADB over WiFi
-  command: "{{ adb_cmd }} connect {{ local_ip }}:{{ adb_port }}"
+# Gather facts via the adb_facts module: it ensures a responsive ADB server,
+# performs a bounded connectivity probe (so an asleep device is skipped instead
+# of hanging), then collects real device facts into ansible_facts.android.
+- name: Gather Android facts over ADB
+  cletus_mccoy.android_adb.adb_facts:
+    device: "{{ local_ip }}:{{ adb_port }}"
+    connect: true
+    connect_timeout: "{{ probe_connect_timeout }}"
+    ensure_server: "{{ probe_ensure_server }}"
+    gather_subset: "{{ probe_gather_subset }}"
+    fail_on_unreachable: "{{ not (probe_skip_unreachable | bool) }}"
   delegate_to: localhost
-  changed_when: false
-  register: adb_connect_result
-  ignore_errors: true
+  register: adb_facts_result
 
-- name: Fail if ADB connection was refused or timed out
-  fail:
-    msg: "Could not connect to {{ inventory_hostname }} at {{ local_ip }}:{{ adb_port }}. Output: {{ adb_connect_result.stdout }}"
-  when: >
-    adb_connect_result.rc != 0 or
-    'unable to connect' in (adb_connect_result.stdout | lower) or
-    'failed to connect' in (adb_connect_result.stdout | lower)
+- name: Note that the device was unreachable (skipping probe)
+  debug:
+    msg: "{{ inventory_hostname }} ({{ local_ip }}:{{ adb_port }}) unreachable (state={{ ansible_facts.android.state }}); skipping."
+  when: not ansible_facts.android.reachable
 
-- name: Confirm device is listed as connected
-  command: "{{ adb_cmd }} devices"
-  delegate_to: localhost
-  changed_when: false
-  register: adb_devices_list
+- name: End host cleanly when the device is unreachable
+  meta: end_host
+  when: not ansible_facts.android.reachable
 
-- name: Fail if device not in device list
-  fail:
-    msg: "Device {{ local_ip }}:{{ adb_port }} not found in 'adb devices'. Output: {{ adb_devices_list.stdout }}"
-  when: "local_ip ~ ':' ~ adb_port not in adb_devices_list.stdout"
-
-- name: Gather device properties (getprop)
-  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell getprop"
-  delegate_to: localhost
-  changed_when: false
-  register: adb_getprop
-
-- name: Parse key device properties into facts
+# Backwards-compatible facts: keep the names earlier consumers expect.
+- name: Expose android_device_info / android_installed_apps facts
   set_fact:
     android_device_info:
-      manufacturer: "{{ adb_getprop.stdout | regex_search('\\[ro\\.product\\.manufacturer\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      model:        "{{ adb_getprop.stdout | regex_search('\\[ro\\.product\\.model\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      brand:        "{{ adb_getprop.stdout | regex_search('\\[ro\\.product\\.brand\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      android_ver:  "{{ adb_getprop.stdout | regex_search('\\[ro\\.build\\.version\\.release\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      sdk_version:  "{{ adb_getprop.stdout | regex_search('\\[ro\\.build\\.version\\.sdk\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      build_id:     "{{ adb_getprop.stdout | regex_search('\\[ro\\.build\\.id\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      serial:       "{{ adb_getprop.stdout | regex_search('\\[ro\\.serialno\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      timezone:     "{{ adb_getprop.stdout | regex_search('\\[persist\\.sys\\.timezone\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-      locale:       "{{ adb_getprop.stdout | regex_search('\\[persist\\.sys\\.locale\\]: \\[(.+?)\\]', '\\1') | first | default('unknown') }}"
-
-- name: Get installed user apps
-  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell pm list packages -3"
-  delegate_to: localhost
-  changed_when: false
-  register: adb_user_packages
-  when: not probe_include_system_apps | bool
-
-- name: Get all installed apps (user + system)
-  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell pm list packages"
-  delegate_to: localhost
-  changed_when: false
-  register: adb_all_packages
-  when: probe_include_system_apps | bool
-
-- name: Parse package list into fact
-  set_fact:
-    android_installed_apps: >-
-      {{
-        (probe_include_system_apps | bool) | ternary(
-          adb_all_packages.stdout,
-          adb_user_packages.stdout
-        ) | regex_findall('package:(.+)')
-      }}
-
-- name: Get available disk space
-  command: "{{ adb_cmd }} -s {{ local_ip }}:{{ adb_port }} shell df /data"
-  delegate_to: localhost
-  changed_when: false
-  register: adb_disk
+      manufacturer: "{{ ansible_facts.android.manufacturer }}"
+      model: "{{ ansible_facts.android.model }}"
+      brand: "{{ ansible_facts.android.brand }}"
+      android_ver: "{{ ansible_facts.android.android_version }}"
+      sdk_version: "{{ ansible_facts.android.sdk }}"
+      build_id: "{{ ansible_facts.android.build_id }}"
+      serial: "{{ ansible_facts.android.serial }}"
+      timezone: "{{ ansible_facts.android.timezone }}"
+      locale: "{{ ansible_facts.android.locale }}"
+    android_installed_apps: "{{ ansible_facts.android.installed_apps | default([]) }}"
 
 - name: Display connection summary
   debug:
@@ -139,5 +102,7 @@
       - "  Serial       : {{ android_device_info.serial }}"
       - "  Timezone     : {{ android_device_info.timezone }}"
       - "  Locale       : {{ android_device_info.locale }}"
-      - "  Apps found   : {{ android_installed_apps | length }} {{ probe_include_system_apps | bool | ternary('(all)', '(user-installed)') }}"
-      - "  Disk (/data) : {{ adb_disk.stdout_lines | last | default('n/a') }}"
+      - "  Awake        : {{ ansible_facts.android.awake }}"
+      - "  Rooted       : {{ ansible_facts.android.rooted | default('n/a') }}"
+      - "  Server reset : {{ ansible_facts.android.server_restarted }}"
+      - "  Apps found   : {{ android_installed_apps | length }} (user-installed)"

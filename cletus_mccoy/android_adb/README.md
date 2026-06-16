@@ -5,6 +5,7 @@ Ansible collection to manage Android devices over ADB.
 ## Features
 - ADB connection plugin (timeouts + retries)
 - Inventory plugin that discovers devices from `adb devices -l`
+- **`gather_facts` equivalent for Android** (`adb_facts`) — populates `ansible_facts.android` with real device state; ensures a responsive ADB server and skips asleep/offline devices cleanly
 - Device info gathering
 - Package listing
 - File push/pull via Ansible modules
@@ -24,6 +25,7 @@ Ansible collection to manage Android devices over ADB.
 - adb_connect — wireless connect/disconnect (idempotent; optional `prune_offline`)
 - adb_device_info
 - adb_device_state
+- **adb_facts** — `gather_facts` equivalent for Android: populates `ansible_facts.android` (reachable/awake/rooted/model/version/packages…) for `gather_facts: false` hosts; ensures a responsive ADB server, fast connectivity probe, graceful skip on unreachable
 - adb_files
 - adb_forward — port forwards (idempotent, supports `state: absent`)
 - adb_install — APK install (idempotent via `package`/`version`)
@@ -122,7 +124,60 @@ read the view hierarchy, and `adb_ui_tap` to tap by `text`/`resource_id` or raw
 coordinates. **Force-stop foreground-stealing overlay apps first** (e.g. a
 rotation-lock app) — they grab focus and fight UI automation.
 
-## Notes for downstream / integration use (v0.3.0)
+## Gathering facts (the `setup`-module equivalent)
+
+Android hosts run `gather_facts: false` (no on-device Python/SSH). Instead of
+faking facts from inventory, run `adb_facts` as a pre-task — it talks to the
+device over ADB from the controller and populates `ansible_facts.android`:
+
+```yaml
+- hosts: android
+  gather_facts: false
+  serial: 1
+  pre_tasks:
+    - name: Gather Android facts
+      cletus_mccoy.android_adb.adb_facts:
+        device: "{{ local_ip }}:{{ adb_port }}"
+        connect: true
+        gather_subset: [min, hardware, root]
+      delegate_to: localhost
+
+    - name: Skip asleep/offline devices without failing the run
+      ansible.builtin.meta: end_host
+      when: not ansible_facts.android.reachable
+```
+
+`adb_facts` ensures a responsive ADB server first (restarting a hung/stale
+fork-server), then does a **bounded** connectivity probe. An unreachable device
+returns `ansible_facts.android.reachable == false` and the task **succeeds** — so
+you no longer need play-level `ignore_unreachable: true` / `any_errors_fatal:
+false` to keep one offline phone from stalling a `serial: 1` batch.
+
+## ADB server lifecycle & throughput
+
+- One `adb -L tcp:5037` fork-server is shared per controller. A wedged server
+  holds the socket and silently degrades every later run. `adb_facts` (and any
+  module via `module_utils.adb.ensure_server`) detects an unresponsive server and
+  `kill-server`/`start-server`s it. **Every** adb call in the collection now has a
+  finite timeout (`AdbTimeout`) — there are no unbounded hangs.
+- Wi-Fi ADB contention is why fleet runs use `serial: 1`. Because the server is
+  shared, true per-device parallelism needs connection isolation (separate
+  `ANDROID_ADB_SERVER_PORT` per device/fork) — keep `serial: 1` unless you set
+  that up.
+
+## Persistent vs on-demand ADB strategy
+
+- **Persistent ADB** (always-listening wireless debugging) suits devices that
+  never leave the network (wall tablets, kiosks). **Never enable persistent ADB
+  on devices that leave the network** (phones) — when they roam, the open debug
+  port travels with them. Phones are **on-demand**: paired/connected only for a
+  run, expected asleep/off otherwise (hence the graceful-skip behaviour above).
+- **Pairing (Android 11+):** the pairing code and port are shown in a
+  *Wireless debugging → Pair device with pairing code* dialog that **times out**
+  and must be held open. Use `adb_pair` with the port+code while that dialog is
+  visible; if it expires, reopen the dialog to get a fresh code and retry.
+
+## Notes for downstream / integration use (v0.4.0)
 
 - Modules shell out to `adb` on the controller, so target them with
   `delegate_to: localhost` (or set `adb_delegate_host`) while the play host is the

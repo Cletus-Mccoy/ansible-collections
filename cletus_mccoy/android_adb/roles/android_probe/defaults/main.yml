@@ -5,3 +5,18 @@ adb_port: "5555"
 
 # Include system packages in the app inventory (false = user-installed only).
 probe_include_system_apps: false
+
+# Fact groups for adb_facts (min is always included). Add 'packages' to inventory
+# installed apps, 'root' for root status, 'all' for everything.
+probe_gather_subset: [min, hardware, packages, root]
+
+# Seconds for the connectivity probe. Short so an asleep/offline device is
+# skipped quickly instead of stalling a serial:1 run.
+probe_connect_timeout: 5
+
+# When true (default), an unreachable device is skipped cleanly (the play
+# continues with android.reachable=false) instead of failing the host.
+probe_skip_unreachable: true
+
+# Detect and restart a hung/stale ADB fork-server before probing.
+probe_ensure_server: true

@@ -13,6 +13,7 @@ action_groups:
     - adb_connect
     - adb_device_info
     - adb_device_state
+    - adb_facts
     - adb_files
     - adb_forward
     - adb_install

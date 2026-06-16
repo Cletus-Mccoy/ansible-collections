@@ -27,3 +27,31 @@ def extract_device_info(props):
 
 def parse_packages(output):
     return [line.replace("package:", "") for line in output.splitlines() if line.startswith("package:")]
+
+
+def parse_awake_state(power_output):
+    """Best-effort screen/awake state from ``dumpsys power``.
+
+    Returns ``True`` (interactive/screen on), ``False`` (asleep/screen off), or
+    ``None`` when it can't be determined. Different Android versions expose this
+    as ``mWakefulness=Awake`` or ``Display Power: state=ON``, so both are tried.
+    """
+    if not power_output:
+        return None
+    for line in power_output.splitlines():
+        line = line.strip()
+        if line.startswith("mWakefulness="):
+            return line.split("=", 1)[1].strip().lower() == "awake"
+    low = power_output.lower()
+    if "display power: state=on" in low:
+        return True
+    if "display power: state=off" in low:
+        return False
+    return None
+
+
+def parse_adbd_root(id_output):
+    """Return ``True`` when ``adb shell id`` shows uid 0 (adbd running as root)."""
+    if not id_output:
+        return False
+    return "uid=0(" in id_output or id_output.strip().startswith("uid=0")

@@ -1,7 +1,18 @@
+import subprocess
+
 import pytest
 from unittest.mock import patch, MagicMock
 
-from adb import run_adb_command, adb_shell, AdbError
+from adb import (
+    run_adb_command,
+    adb_shell,
+    AdbError,
+    AdbTimeout,
+    server_responsive,
+    ensure_server,
+    device_state,
+    probe_device,
+)
 
 
 class TestRunAdbCommand:
@@ -66,3 +77,74 @@ class TestAdbShell:
             adb_shell("/usr/bin/adb", "ls /sdcard")
             cmd = mock_run.call_args[0][0]
             assert "-s" not in cmd
+
+
+class TestTimeoutHandling:
+    def test_run_adb_command_raises_adb_timeout(self):
+        exc = subprocess.TimeoutExpired(cmd=["adb"], timeout=30)
+        with patch("adb.subprocess.run", side_effect=exc):
+            with pytest.raises(AdbTimeout):
+                run_adb_command("/usr/bin/adb", ["devices"])
+
+    def test_adb_timeout_is_adb_error(self):
+        assert issubclass(AdbTimeout, AdbError)
+
+
+class TestServerLifecycle:
+    def test_server_responsive_true(self):
+        with patch("adb.subprocess.run", return_value=MagicMock()):
+            assert server_responsive("/usr/bin/adb") is True
+
+    def test_server_responsive_false_on_timeout(self):
+        with patch("adb.subprocess.run",
+                   side_effect=subprocess.TimeoutExpired(cmd=["adb"], timeout=5)):
+            assert server_responsive("/usr/bin/adb") is False
+
+    def test_ensure_server_noop_when_responsive(self):
+        with patch("adb.server_responsive", return_value=True):
+            with patch("adb.kill_server") as kill:
+                result = ensure_server("/usr/bin/adb")
+        assert result == {"restarted": False, "responsive": True}
+        kill.assert_not_called()
+
+    def test_ensure_server_restarts_when_hung(self):
+        # First probe says hung, post-restart probe says responsive.
+        responses = iter([False, True])
+        with patch("adb.server_responsive", side_effect=lambda *a, **k: next(responses)):
+            with patch("adb.kill_server") as kill, patch("adb.start_server") as start:
+                result = ensure_server("/usr/bin/adb")
+        kill.assert_called_once()
+        start.assert_called_once()
+        assert result == {"restarted": True, "responsive": True}
+
+
+class TestDeviceState:
+    DEVICES = "List of devices attached\n192.168.1.5:5555\tdevice\nabc123\toffline\n"
+
+    def test_device_state_found(self):
+        with patch("adb.subprocess.run",
+                   return_value=MagicMock(returncode=0, stdout=self.DEVICES, stderr="")):
+            assert device_state("/usr/bin/adb", "192.168.1.5:5555") == "device"
+            assert device_state("/usr/bin/adb", "abc123") == "offline"
+
+    def test_device_state_absent(self):
+        with patch("adb.subprocess.run",
+                   return_value=MagicMock(returncode=0, stdout=self.DEVICES, stderr="")):
+            assert device_state("/usr/bin/adb", "nope:1") is None
+
+
+class TestProbeDevice:
+    def test_unreachable_when_not_listed(self):
+        with patch("adb.device_state", return_value=None):
+            assert probe_device("/usr/bin/adb", "1.2.3.4:5555") == "unreachable"
+
+    def test_returns_device_state(self):
+        with patch("adb.device_state", return_value="device"):
+            assert probe_device("/usr/bin/adb", "1.2.3.4:5555") == "device"
+
+    def test_connect_timeout_marks_unreachable(self):
+        with patch("adb.subprocess.run",
+                   side_effect=subprocess.TimeoutExpired(cmd=["adb"], timeout=5)):
+            state = probe_device("/usr/bin/adb", "1.2.3.4:5555",
+                                 connect=True, connect_timeout=5)
+        assert state == "unreachable"
