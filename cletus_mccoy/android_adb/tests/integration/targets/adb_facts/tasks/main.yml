@@ -1,0 +1,78 @@
+---
+# Integration tests for the adb_facts module (gather_facts equivalent).
+# Requires: adb in PATH or ~/.local/platform-tools/adb, device connected over WiFi.
+# adb_device is set by setup.yml (IP:port).
+
+- name: Gather facts (reachable device, full subset)
+  cletus_mccoy.android_adb.adb_facts:
+    device: "{{ adb_device }}"
+    gather_subset: [min, hardware, root]
+  register: result
+
+- name: Assert module succeeded and is read-only
+  assert:
+    that:
+      - result is not failed
+      - result.changed == false
+      - result.ansible_facts.android is defined
+
+- name: Assert facts were promoted into ansible_facts.android
+  assert:
+    that:
+      - ansible_facts.android.reachable
+      - ansible_facts.android.state == 'device'
+      - ansible_facts.android.model | length > 0
+      - ansible_facts.android.manufacturer | length > 0
+      - ansible_facts.android.android_version | length > 0
+      - ansible_facts.android.sdk | int > 0
+      - ansible_facts.android.awake is defined
+      - ansible_facts.android.adbd_root is defined
+      - ansible_facts.android.rooted is defined
+    fail_msg: "Expected android facts missing: {{ ansible_facts.android }}"
+
+- name: Gather only the packages subset
+  cletus_mccoy.android_adb.adb_facts:
+    device: "{{ adb_device }}"
+    gather_subset: [packages]
+  register: pkg_result
+
+- name: Assert installed_apps is a list
+  assert:
+    that:
+      - pkg_result.ansible_facts.android.installed_apps is sequence
+
+# An unreachable device must skip cleanly (reachable=false), not fail, so one
+# offline phone can't stall a serial:1 run.
+- name: Gather facts from a bogus/unreachable device
+  cletus_mccoy.android_adb.adb_facts:
+    device: "10.255.255.1:5555"
+    connect: true
+    connect_timeout: 3
+  register: down_result
+
+- name: Assert unreachable device is skipped, not failed
+  assert:
+    that:
+      - down_result is not failed
+      - down_result.changed == false
+      - down_result.ansible_facts.android.reachable == false
+    fail_msg: "Unreachable device should skip cleanly: {{ down_result }}"
+
+- name: fail_on_unreachable should turn an unreachable device into a failure
+  cletus_mccoy.android_adb.adb_facts:
+    device: "10.255.255.1:5555"
+    connect: true
+    connect_timeout: 3
+    fail_on_unreachable: true
+  register: down_fail
+  ignore_errors: true
+
+- name: Assert fail_on_unreachable failed as expected
+  assert:
+    that:
+      - down_fail is failed
+    fail_msg: "fail_on_unreachable should have failed for an unreachable device"
+
+- name: Show gathered android facts
+  debug:
+    var: ansible_facts.android

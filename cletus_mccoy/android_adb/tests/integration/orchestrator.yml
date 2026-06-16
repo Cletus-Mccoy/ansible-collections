@@ -13,6 +13,7 @@
 - import_playbook: targets/adb_config/playbook.yml
 - import_playbook: targets/adb_settings/playbook.yml
 - import_playbook: targets/adb_device_info/playbook.yml
+- import_playbook: targets/adb_facts/playbook.yml
 - import_playbook: targets/adb_forward/playbook.yml
 - import_playbook: targets/adb_install/playbook.yml
 - import_playbook: targets/adb_intent/playbook.yml
