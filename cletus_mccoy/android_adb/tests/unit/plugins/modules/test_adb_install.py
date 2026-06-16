@@ -23,7 +23,7 @@ def run_module(params, dumpsys_output='', install_output='Success', check_mode=F
     module = DummyModule(dict({'package': None, 'version': None, 'device': None, 'adb_path': 'adb'}, **params),
                          check_mode=check_mode)
 
-    def fake_run_adb(adb_path, args, device=None, timeout=30):
+    def fake_run_adb(adb_path, args, device=None, timeout=30, server_port=None):
         if args[0] == 'shell' and args[1].startswith('dumpsys'):
             return dumpsys_output
         return install_output

@@ -73,6 +73,31 @@
       - down_fail is failed
     fail_msg: "fail_on_unreachable should have failed for an unreachable device"
 
+# Per-device server isolation (-P): gather against a dedicated ADB server on an
+# alternate port. Proves the device can be reached without touching the shared
+# tcp:5037 server.
+- name: Gather via an isolated ADB server port
+  cletus_mccoy.android_adb.adb_facts:
+    device: "{{ adb_device }}"
+    connect: true
+    adb_server_port: 5038
+    gather_subset: [min]
+  register: isolated
+
+- name: Assert the isolated-server gather reached the device
+  assert:
+    that:
+      - isolated is not failed
+      - isolated.ansible_facts.android.reachable
+      - isolated.ansible_facts.android.model | length > 0
+    fail_msg: "Isolated adb_server_port gather failed: {{ isolated.ansible_facts.android | default('n/a') }}"
+
+- name: Tear down the isolated ADB server (port 5038)
+  ansible.builtin.command: "adb -P 5038 kill-server"
+  delegate_to: localhost
+  failed_when: false
+  changed_when: false
+
 - name: Show gathered android facts
   debug:
     var: ansible_facts.android

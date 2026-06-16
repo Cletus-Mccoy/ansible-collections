@@ -40,6 +40,14 @@ options:
       - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
     required: false
     type: str
+  adb_server_port:
+    description:
+      - Connect using a dedicated ADB server on this port (C(adb -P <port>))
+        instead of the shared C(tcp:5037) server. Give each device a distinct
+        port (e.g. from inventory) to isolate them and avoid shared-server
+        contention under parallel runs.
+    required: false
+    type: int
 author:
   - Kasper Daems
 version_added: '1.3.0'
@@ -79,10 +87,18 @@ import subprocess
 import shutil
 
 
-def _is_connected(adb_path, target):
+def _base(adb_path, server_port=None):
+    """adb command prefix, optionally pinned to a dedicated server port (-P)."""
+    cmd = [adb_path]
+    if server_port:
+        cmd += ["-P", str(server_port)]
+    return cmd
+
+
+def _is_connected(adb_path, target, server_port=None):
     """Return True if ``target`` (ip:port) shows as a device in ``adb devices``."""
     proc = subprocess.run(
-        [adb_path, "devices"], capture_output=True, text=True, timeout=10
+        _base(adb_path, server_port) + ["devices"], capture_output=True, text=True, timeout=10
     )
     for line in proc.stdout.splitlines()[1:]:
         line = line.strip()
@@ -95,10 +111,10 @@ def _is_connected(adb_path, target):
     return False
 
 
-def _offline_serials(adb_path):
+def _offline_serials(adb_path, server_port=None):
     """Return serials currently shown as ``offline`` in ``adb devices``."""
     proc = subprocess.run(
-        [adb_path, "devices"], capture_output=True, text=True, timeout=10
+        _base(adb_path, server_port) + ["devices"], capture_output=True, text=True, timeout=10
     )
     offline = []
     for line in proc.stdout.splitlines()[1:]:
@@ -120,6 +136,7 @@ def main():
                        choices=["present", "absent"]),
             prune_offline=dict(type="bool", required=False, default=False),
             adb_path=dict(type="str", required=False, default=None),
+            adb_server_port=dict(type="int", required=False, default=None),
         ),
         supports_check_mode=True,
     )
@@ -131,17 +148,18 @@ def main():
     ip = module.params["ip"]
     port = module.params["port"]
     state = module.params["state"]
+    server_port = module.params.get("adb_server_port")
     target = f"{ip}:{port}"
 
     try:
-        already_connected = _is_connected(adb_path, target)
+        already_connected = _is_connected(adb_path, target, server_port=server_port)
 
         if state == "present":
             pruned = []
             if module.params.get("prune_offline"):
-                for serial in _offline_serials(adb_path):
+                for serial in _offline_serials(adb_path, server_port=server_port):
                     if not module.check_mode:
-                        subprocess.run([adb_path, "disconnect", serial],
+                        subprocess.run(_base(adb_path, server_port) + ["disconnect", serial],
                                        capture_output=True, text=True, timeout=10)
                     pruned.append(serial)
 
@@ -152,7 +170,7 @@ def main():
                 module.exit_json(changed=True, msg=f"would connect to {target}",
                                  pruned=pruned)
             proc = subprocess.run(
-                [adb_path, "connect", target],
+                _base(adb_path, server_port) + ["connect", target],
                 capture_output=True, text=True, timeout=10,
             )
             out = (proc.stdout or "") + (proc.stderr or "")
@@ -166,7 +184,7 @@ def main():
             if module.check_mode:
                 module.exit_json(changed=True, msg=f"would disconnect {target}")
             proc = subprocess.run(
-                [adb_path, "disconnect", target],
+                _base(adb_path, server_port) + ["disconnect", target],
                 capture_output=True, text=True, timeout=10,
             )
             if proc.returncode == 0:

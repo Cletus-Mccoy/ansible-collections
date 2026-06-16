@@ -160,10 +160,27 @@ false` to keep one offline phone from stalling a `serial: 1` batch.
   module via `module_utils.adb.ensure_server`) detects an unresponsive server and
   `kill-server`/`start-server`s it. **Every** adb call in the collection now has a
   finite timeout (`AdbTimeout`) — there are no unbounded hangs.
-- Wi-Fi ADB contention is why fleet runs use `serial: 1`. Because the server is
-  shared, true per-device parallelism needs connection isolation (separate
-  `ANDROID_ADB_SERVER_PORT` per device/fork) — keep `serial: 1` unless you set
-  that up.
+- Wi-Fi ADB contention is why fleet runs default to `serial: 1` on the shared
+  server. For real per-device parallelism, give each device its own ADB server
+  with the **`adb_server_port`** option (`adb -P <port>`), e.g. from inventory:
+
+  ```yaml
+  # inventory: a distinct port per host
+  phone_a:  { adb_server_port: 5038 }
+  phone_b:  { adb_server_port: 5039 }
+  ```
+  ```yaml
+  # apply to every adb_* task at once via module_defaults
+  - hosts: android
+    gather_facts: false
+    module_defaults:
+      group/cletus_mccoy.android_adb.adb:
+        adb_server_port: "{{ adb_server_port | default(omit) }}"
+  ```
+  With isolated servers the hosts no longer contend on `tcp:5037`, so you can drop
+  `serial: 1` and run with a normal `forks`/throttle. `adb_server_port` is
+  supported on `adb_facts`, `adb_connect`, `adb_shell`, and `adb_pair` (and the
+  shared `module_utils.adb` engine threads it through `-P`).
 
 ## Persistent vs on-demand ADB strategy
 
@@ -174,10 +191,12 @@ false` to keep one offline phone from stalling a `serial: 1` batch.
   run, expected asleep/off otherwise (hence the graceful-skip behaviour above).
 - **Pairing (Android 11+):** the pairing code and port are shown in a
   *Wireless debugging → Pair device with pairing code* dialog that **times out**
-  and must be held open. Use `adb_pair` with the port+code while that dialog is
-  visible; if it expires, reopen the dialog to get a fresh code and retry.
+  and must be held open. `adb_pair` retries within a bounded window
+  (`retries`/`retry_delay`/`timeout`) and, when the window has expired/closed,
+  fails with `expired: true` and an actionable message telling you to reopen the
+  dialog for a fresh code+port and resume — instead of an opaque connection error.
 
-## Notes for downstream / integration use (v0.4.1)
+## Notes for downstream / integration use (v0.5.0)
 
 - Modules shell out to `adb` on the controller, so target them with
   `delegate_to: localhost` (or set `adb_delegate_host`) while the play host is the

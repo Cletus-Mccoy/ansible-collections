@@ -28,7 +28,7 @@ def run_module(params, shell_output='Starting: Intent', check_mode=False):
     )
     captured = {}
 
-    def fake_run_adb(adb_path, args, device=None, timeout=30):
+    def fake_run_adb(adb_path, args, device=None, timeout=30, server_port=None):
         captured['args'] = args
         return shell_output
 

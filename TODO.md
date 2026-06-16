@@ -10,11 +10,12 @@ device. They were masked before because the orchestrator died early at adb_confi
 - [x] `adb_install` — referenced an undefined `install_result` var and required
       `changed=true` (breaks on idempotent re-runs). FIXED: removed the bogus task;
       success = "not failed".
-- [ ] `adb_intent` — assumes `am start -a com.example.INVALID_ACTION` exits non-zero;
+- [x] `adb_intent` — assumes `am start -a com.example.INVALID_ACTION` exits non-zero;
       on this GSI's `am` an unresolvable action prints an error but exits 0, so the
       module does not "fail" → "Intent did not fail as expected" assertion fails.
-      Fix: use a guaranteed-failing invocation (e.g. `-n pkg/.NoSuchActivity`) or make
-      the assertion device-aware.
+      FIXED (0.5.0): negative test now targets a non-existent component
+      (`-n com.example.fake/.NoSuchActivity`), which reliably emits "Error:" and the
+      module surfaces it as a failure; added a positive HOME-intent case too.
 - [ ] Verify the orchestrator tail (`adb_logcat`, `adb_packages`, `adb_uninstall`)
       reaches green once `adb_intent` is fixed — these were never reached on this
       device (masked behind the earlier failures).

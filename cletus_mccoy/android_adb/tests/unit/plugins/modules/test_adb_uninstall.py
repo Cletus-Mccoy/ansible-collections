@@ -22,7 +22,7 @@ def run_module(params, list_output, uninstall_output='Success', check_mode=False
     module = DummyModule(dict({'device': None, 'adb_path': 'adb', 'keep_data': False}, **params),
                          check_mode=check_mode)
 
-    def fake_run_adb(adb_path, args, device=None, timeout=30):
+    def fake_run_adb(adb_path, args, device=None, timeout=30, server_port=None):
         if args[0] == 'shell':
             return list_output
         return uninstall_output

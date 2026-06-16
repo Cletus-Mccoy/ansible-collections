@@ -1,9 +1,14 @@
 ---
-# Integration test for adb_intent module
-- name: Try to send an intent (should fail with fake action)
+# Integration test for adb_intent module.
+#
+# Negative case: target a non-existent component. `am start -n <pkg>/.NoSuchActivity`
+# reliably prints "Error: Activity class ... does not exist", which the module
+# surfaces as a failure. (A bogus -a <action> is unreliable — on some `am`
+# builds an unresolvable action still exits 0 with no Error marker.)
+- name: Try to start a non-existent component (should fail)
   cletus_mccoy.android_adb.adb_intent:
     device: "{{ adb_device }}"
-    action: com.example.INVALID_ACTION
+    component: com.example.fake/.NoSuchActivity
   register: intent_result
   ignore_errors: true
 
@@ -12,4 +17,21 @@
     that:
       - intent_result.failed
       - intent_result.msg is defined
-    fail_msg: "Intent did not fail as expected for invalid action"
+      - "'Error:' in intent_result.msg"
+    fail_msg: "Intent did not fail as expected for a non-existent component. Got: {{ intent_result }}"
+
+# Positive case: a universally-available activity (the launcher's home) starts
+# cleanly, proving the module's success path too.
+- name: Start an intent that should succeed (HOME)
+  cletus_mccoy.android_adb.adb_intent:
+    device: "{{ adb_device }}"
+    action: android.intent.action.MAIN
+    category: android.intent.category.HOME
+  register: intent_ok
+
+- name: Assert the valid intent succeeded
+  assert:
+    that:
+      - intent_ok is not failed
+      - intent_ok.changed
+    fail_msg: "HOME intent should have started cleanly. Got: {{ intent_ok }}"

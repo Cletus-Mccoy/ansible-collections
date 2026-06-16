@@ -68,6 +68,14 @@ options:
     required: false
     type: bool
     default: true
+  adb_server_port:
+    description:
+      - Run against a dedicated ADB server on this port (C(adb -P <port>))
+        instead of the shared C(tcp:5037) server. Give each device a distinct
+        port (e.g. from inventory) to isolate them and avoid shared-server
+        contention under parallel runs.
+    required: false
+    type: int
   adb_path:
     description:
       - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
@@ -148,18 +156,21 @@ def _subsets(requested):
     return requested
 
 
-def _shell(adb_path, cmd, device, timeout):
+def _shell(adb_path, cmd, device, timeout, server_port=None):
     """adb shell that returns '' on error instead of aborting the whole gather."""
     try:
-        return adb_shell(adb_path, cmd, device=device, timeout=timeout)
+        return adb_shell(adb_path, cmd, device=device, timeout=timeout, server_port=server_port)
     except (AdbError, AdbTimeout):
         return ""
 
 
-def gather(adb_path, device, subsets, timeout):
+def gather(adb_path, device, subsets, timeout, server_port=None):
     facts = {}
 
-    props = parse_getprop(_shell(adb_path, "getprop", device, timeout))
+    def sh(cmd):
+        return _shell(adb_path, cmd, device, timeout, server_port=server_port)
+
+    props = parse_getprop(sh("getprop"))
     base = extract_device_info(props)
     # Friendlier, setup-style key names alongside the device_info names.
     facts.update({
@@ -176,33 +187,31 @@ def gather(adb_path, device, subsets, timeout):
     })
 
     # Awake/screen state — cheap and always useful for on-demand devices.
-    facts["awake"] = parse_awake_state(_shell(adb_path, "dumpsys power", device, timeout))
+    facts["awake"] = parse_awake_state(sh("dumpsys power"))
 
     if "root" in subsets:
-        facts["adbd_root"] = parse_adbd_root(_shell(adb_path, "id", device, timeout))
+        facts["adbd_root"] = parse_adbd_root(sh("id"))
         # A `su` binary means the device itself is rooted, independent of adbd.
-        su_path = _shell(adb_path, "which su || command -v su || true", device, timeout)
+        su_path = sh("which su || command -v su || true")
         facts["rooted"] = bool(su_path.strip()) or facts["adbd_root"]
 
     if "hardware" in subsets:
         facts["cpu_abi"] = props.get("ro.product.cpu.abi", "unknown")
         facts["hardware"] = props.get("ro.hardware", "unknown")
         facts["device_codename"] = props.get("ro.product.device", "unknown")
-        facts["kernel"] = _shell(adb_path, "uname -r", device, timeout) or "unknown"
+        facts["kernel"] = sh("uname -r") or "unknown"
 
     if "network" in subsets:
-        facts["network"] = _shell(adb_path, "ip addr show", device, timeout)
+        facts["network"] = sh("ip addr show")
 
     if "storage" in subsets:
-        facts["storage"] = _shell(adb_path, "df /data", device, timeout)
+        facts["storage"] = sh("df /data")
 
     if "battery" in subsets:
-        facts["battery"] = _shell(adb_path, "dumpsys battery", device, timeout)
+        facts["battery"] = sh("dumpsys battery")
 
     if "packages" in subsets:
-        facts["installed_apps"] = parse_packages(
-            _shell(adb_path, "pm list packages -3", device, timeout)
-        )
+        facts["installed_apps"] = parse_packages(sh("pm list packages -3"))
 
     return facts
 
@@ -217,6 +226,7 @@ def main():
             gather_subset=dict(type="list", elements="str", required=False, default=["min"]),
             fail_on_unreachable=dict(type="bool", required=False, default=False),
             ensure_server=dict(type="bool", required=False, default=True),
+            adb_server_port=dict(type="int", required=False, default=None),
             adb_path=dict(type="str", required=False, default=None),
         ),
         supports_check_mode=True,
@@ -229,12 +239,13 @@ def main():
     device = module.params.get("device")
     connect_timeout = module.params["connect_timeout"]
     command_timeout = module.params["command_timeout"]
+    server_port = module.params.get("adb_server_port")
     subsets = _subsets(module.params["gather_subset"])
 
     server = {"restarted": False}
     try:
         if module.params["ensure_server"]:
-            server = adb_ensure_server(adb_path, timeout=connect_timeout)
+            server = adb_ensure_server(adb_path, timeout=connect_timeout, server_port=server_port)
             if not server.get("responsive", True):
                 module.fail_json(
                     msg="ADB server is not responsive even after restart",
@@ -247,6 +258,7 @@ def main():
         adb_path, device,
         connect=module.params["connect"],
         connect_timeout=connect_timeout,
+        server_port=server_port,
     )
 
     if state != "device":
@@ -266,7 +278,7 @@ def main():
         module.exit_json(changed=False, ansible_facts={"android": android})
 
     try:
-        android = gather(adb_path, device, subsets, command_timeout)
+        android = gather(adb_path, device, subsets, command_timeout, server_port=server_port)
     except (AdbError, AdbTimeout) as e:
         module.fail_json(msg=str(e), changed=False)
 

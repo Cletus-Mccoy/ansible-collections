@@ -41,6 +41,23 @@ class TestRunAdbCommand:
             assert cmd == ["/usr/bin/adb", "-s", "192.168.1.10:42135", "shell", "getprop"]
             assert result == "output"
 
+    def test_server_port_adds_dash_p(self):
+        with patch("adb.subprocess.run", return_value=self._mock_result()) as mock_run:
+            run_adb_command("/usr/bin/adb", ["devices"], server_port=5038)
+            cmd = mock_run.call_args[0][0]
+            assert cmd == ["/usr/bin/adb", "-P", "5038", "devices"]
+
+    def test_server_port_precedes_device_selector(self):
+        with patch("adb.subprocess.run", return_value=self._mock_result()) as mock_run:
+            run_adb_command("/usr/bin/adb", ["shell", "id"], device="1.2.3.4:5555", server_port=5040)
+            cmd = mock_run.call_args[0][0]
+            assert cmd == ["/usr/bin/adb", "-P", "5040", "-s", "1.2.3.4:5555", "shell", "id"]
+
+    def test_no_server_port_keeps_plain_cmd(self):
+        with patch("adb.subprocess.run", return_value=self._mock_result()) as mock_run:
+            run_adb_command("/usr/bin/adb", ["devices"])
+            assert mock_run.call_args[0][0] == ["/usr/bin/adb", "devices"]
+
     def test_raises_adb_error_on_nonzero_rc(self):
         with patch("adb.subprocess.run", return_value=self._mock_result(returncode=1, stderr="error: device not found")):
             with pytest.raises(AdbError, match="error: device not found"):

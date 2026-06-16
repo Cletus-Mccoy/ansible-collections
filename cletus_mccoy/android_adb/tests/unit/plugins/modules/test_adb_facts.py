@@ -40,7 +40,7 @@ def run_module(monkeypatch, params, probe_state, shell_map=None):
 
     shell_map = shell_map or {}
 
-    def fake_shell(adb_path, cmd, device=None, timeout=30):
+    def fake_shell(adb_path, cmd, device=None, timeout=30, server_port=None):
         return shell_map.get(cmd, "")
 
     monkeypatch.setattr(adb_facts, "adb_shell", fake_shell)

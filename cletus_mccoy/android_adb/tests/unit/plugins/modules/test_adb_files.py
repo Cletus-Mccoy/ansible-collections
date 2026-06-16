@@ -7,7 +7,7 @@ from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb impor
 def test_adb_push_runs(monkeypatch, tmp_path):
     test_file = tmp_path / "test.txt"
     test_file.write_text("hello")
-    def fake_run_adb_command(adb_path, args, device=None, timeout=30):
+    def fake_run_adb_command(adb_path, args, device=None, timeout=30, server_port=None):
         assert adb_path == 'adb'
         assert args == ['push', str(test_file), '/data/local/tmp/test.txt']
         return 'pushed'
@@ -17,7 +17,7 @@ def test_adb_push_runs(monkeypatch, tmp_path):
 
 
 def test_adb_pull_runs(monkeypatch):
-    def fake_run_adb_command(adb_path, args, device=None, timeout=30):
+    def fake_run_adb_command(adb_path, args, device=None, timeout=30, server_port=None):
         assert adb_path == 'adb'
         assert args == ['pull', '/data/local/tmp/test.txt', './localcopy.txt']
         return 'pulled'

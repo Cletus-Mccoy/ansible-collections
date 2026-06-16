@@ -145,8 +145,11 @@ def main():
         adb_shell, AdbError,
     )
     try:
-        output = adb_shell(adb_path, shell_cmd, device=device)
-        # `am` returns 0 even for some failures; surface common error markers.
+        # `am` exits 0 even for some failures and prints the reason to stderr
+        # (e.g. "Error: Activity class ... does not exist" for a bad component),
+        # and `adb shell`'s exit-code propagation is device-dependent. Merge
+        # stderr into stdout so those error markers are reliably visible.
+        output = adb_shell(adb_path, shell_cmd + " 2>&1", device=device)
         if "Error:" in output or "Exception" in output:
             module.fail_json(msg=f"Intent failed: {output}", changed=False)
         module.exit_json(changed=True, stdout=output)

@@ -28,6 +28,12 @@ options:
     required: false
     type: str
     default: adb
+  adb_server_port:
+    description:
+      - Run against a dedicated ADB server on this port (C(adb -P <port>))
+        instead of the shared C(tcp:5037) server, for per-device isolation.
+    required: false
+    type: int
 author:
   - Kasper Daems
 version_added: '1.0.0'
@@ -64,6 +70,7 @@ def main():
         command=dict(type='str', required=True),
         device=dict(type='str', required=False, default=None),
         adb_path=dict(type='str', required=False, default='adb'),
+        adb_server_port=dict(type='int', required=False, default=None),
     )
 
     module = AnsibleModule(
@@ -74,9 +81,10 @@ def main():
     command = module.params['command']
     device = module.params['device']
     adb_path = module.params['adb_path']
+    server_port = module.params['adb_server_port']
 
     try:
-        output = adb_shell(adb_path, command, device=device)
+        output = adb_shell(adb_path, command, device=device, server_port=server_port)
         module.exit_json(changed=True, stdout=output)
     except AdbError as e:
         module.fail_json(msg=str(e))
