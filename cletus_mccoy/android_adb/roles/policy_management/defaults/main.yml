@@ -1,0 +1,17 @@
+---
+# policy_management role defaults
+
+# Host that runs the adb binary (controller). adb_* modules are delegated here.
+adb_delegate_host: localhost
+
+# Device serial / IP:port the adb_* modules target. Usually set from inventory.
+policy_device: "{{ inventory_hostname }}"
+
+# Enforceable over plain ADB (idempotent Settings write).
+enforce_screen_lock: false
+
+# Destructive / action-typed policies. All opt-in; remote_wipe additionally
+# requires policy_confirm_wipe=true.
+remote_lock: false
+remote_wipe: false
+policy_confirm_wipe: false

@@ -1,36 +1,63 @@
 ---
-# Enforce screen lock policy
-- name: Enforce screen lock
-  adb_config:
-    action: set
-    key: lock_screen
-    value: "{{ enforce_screen_lock | default(false) }}"
-  when: enforce_screen_lock is defined
+# Apply device policies over ADB.
+#
+# Plain (non-rooted) ADB is not a Device Policy Controller, so only policies that
+# map to real, writable Settings are enforced — via the idempotent adb_settings
+# module, so a no-op re-run reports changed=false and consumers can
+# fingerprint-gate. Policies that genuinely require an MDM/DPC are skipped with a
+# warning instead of silently doing nothing. Destructive actions (lock now /
+# factory reset) are explicit, action-typed, and guarded.
+#
+# All adb_* modules shell out to adb on the controller, so they are delegated to
+# adb_delegate_host (localhost) with an explicit device, consistent with the
+# other roles.
 
-# Set minimum password length
-- name: Set minimum password length
-  adb_config:
-    action: set
-    key: min_password_length
-    value: "{{ min_password_length }}"
+- name: Require a secure lock screen (idempotent)
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ policy_device }}"
+    namespace: secure
+    key: lockscreen.disabled
+    value: "0"
+  delegate_to: "{{ adb_delegate_host }}"
+  when: enforce_screen_lock | default(false) | bool
+
+- name: Warn that min_password_length is not enforceable over plain ADB
+  ansible.builtin.debug:
+    msg: >-
+      min_password_length requires a Device Policy Controller (MDM); it cannot be
+      enforced over plain ADB and is being skipped.
   when: min_password_length is defined
 
-# Enforce encryption
-- name: Enforce device encryption
-  adb_config:
-    action: set
-    key: require_encryption
-    value: "{{ require_encryption | default(false) }}"
-  when: require_encryption is defined
+- name: Warn that require_encryption is not settable over ADB
+  ansible.builtin.debug:
+    msg: >-
+      Modern Android is encrypted by default and encryption cannot be toggled
+      over ADB; require_encryption is being skipped.
+  when: require_encryption | default(false) | bool
 
-# Remote wipe
-- name: Remote wipe device
-  adb_device_state:
-    state: wipe
-  when: remote_wipe | default(false)
+# --- Destructive / action-typed policies (always opt-in) -------------------
 
-# Remote lock
-- name: Remote lock device
-  adb_device_state:
-    state: lock
-  when: remote_lock | default(false)
+- name: Remote lock (turn the screen off; locks if a secure lock is set)
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ policy_device }}"
+    command: "input keyevent 26"
+  delegate_to: "{{ adb_delegate_host }}"
+  when: remote_lock | default(false) | bool
+
+- name: Remote wipe (factory reset) — requires explicit double opt-in
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ policy_device }}"
+    command: "am broadcast -a android.intent.action.MASTER_CLEAR"
+  delegate_to: "{{ adb_delegate_host }}"
+  when:
+    - remote_wipe | default(false) | bool
+    - policy_confirm_wipe | default(false) | bool
+
+- name: Fail if remote_wipe was requested without confirmation
+  ansible.builtin.fail:
+    msg: >-
+      remote_wipe is destructive (factory reset). Set policy_confirm_wipe=true to
+      confirm. Refusing to wipe.
+  when:
+    - remote_wipe | default(false) | bool
+    - not (policy_confirm_wipe | default(false) | bool)

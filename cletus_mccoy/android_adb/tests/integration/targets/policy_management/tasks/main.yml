@@ -1,12 +1,81 @@
 ---
-- name: Test enforce screen lock
+# Integration tests for the policy_management role.
+# adb_device is set by setup.yml (IP:port). Captures and restores the touched
+# secure setting so the device is left clean.
+
+- name: Read current secure/lockscreen.disabled
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: secure
+    key: lockscreen.disabled
+    state: read
+  delegate_to: localhost
+  register: lockscreen_before
+
+# --- enforce_screen_lock: idempotency / accurate changed -------------------
+- name: Apply enforce_screen_lock (first run)
   include_role:
     name: cletus_mccoy.android_adb.policy_management
   vars:
+    policy_device: "{{ adb_device }}"
     enforce_screen_lock: true
 
-- name: Test remote lock (noop)
-  include_role:
-    name: cletus_mccoy.android_adb.policy_management
-  vars:
-    remote_lock: true
+- name: Re-apply enforce_screen_lock directly (second run must be idempotent)
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: secure
+    key: lockscreen.disabled
+    value: "0"
+  delegate_to: localhost
+  register: enforce_second
+
+- name: Assert second apply is idempotent (changed=false)
+  assert:
+    that:
+      - enforce_second is not changed
+    fail_msg: "policy_management enforce_screen_lock is not idempotent on re-run"
+
+# --- remote_wipe confirmation gate -----------------------------------------
+# ignore_errors on include_role does not suppress a failure raised inside the
+# role, so use block/rescue to catch the guard's fail and keep the play going.
+- name: remote_wipe without confirmation must refuse (guarded)
+  block:
+    - name: Invoke role with remote_wipe but no confirmation
+      include_role:
+        name: cletus_mccoy.android_adb.policy_management
+      vars:
+        policy_device: "{{ adb_device }}"
+        remote_wipe: true
+        policy_confirm_wipe: false
+    - name: Mark that the wipe was (wrongly) not refused
+      set_fact:
+        wipe_refused: false
+  rescue:
+    - name: Mark that the wipe was refused as expected
+      set_fact:
+        wipe_refused: true
+
+- name: Assert the wipe guard fired
+  assert:
+    that:
+      - wipe_refused | bool
+    fail_msg: "remote_wipe should refuse without policy_confirm_wipe=true"
+
+# --- Restore prior state ---------------------------------------------------
+- name: Restore secure/lockscreen.disabled to its prior value
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: secure
+    key: lockscreen.disabled
+    value: "{{ lockscreen_before.value }}"
+  delegate_to: localhost
+  when: lockscreen_before.value is not none
+
+- name: Delete the key if it was unset before the test
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: secure
+    key: lockscreen.disabled
+    state: absent
+  delegate_to: localhost
+  when: lockscreen_before.value is none

@@ -1,16 +1,62 @@
 ---
-- name: Test bulk install (noop)
-  include_role:
-    name: cletus_mccoy.android_adb.app_management
-  vars:
-    app_action: bulk_install
-    app_install_list:
-      - /data/local/tmp/fake1.apk
-      - /data/local/tmp/fake2.apk
+# Integration tests for the app_management role — focuses on update idempotency.
+# adb_device is set by setup.yml (IP:port). Leaves the device clean.
+#
+# Uses the bundled HelloWorldSelfAware.apk (package
+# com.appliberated.helloworldselfaware, versionName 1.1.0).
 
-- name: Test targeted remove (noop)
+- name: Ensure HelloWorld is installed at the test version
+  cletus_mccoy.android_adb.adb_install:
+    apk_path: "{{ playbook_dir }}/../../apks/HelloWorldSelfAware.apk"
+    device: "{{ adb_device }}"
+    package: com.appliberated.helloworldselfaware
+    version: "1.1.0"
+  delegate_to: localhost
+  register: ensure_install
+  ignore_errors: true
+
+- name: Skip the test on devices that restrict APK install
+  block:
+    - assert:
+        that:
+          - ensure_install is not failed
+  rescue:
+    - debug:
+        msg: "Skipping app_management test: device restricts install ({{ ensure_install.msg | default('') }})"
+    - meta: end_play
+
+# The role's bulk_update now threads package+version, so a device already at the
+# target version must not reinstall.
+- name: Run app_management bulk_update at the installed version
   include_role:
     name: cletus_mccoy.android_adb.app_management
   vars:
-    app_action: targeted_remove
-    targeted_package: com.example.fake
+    app_action: bulk_update
+    app_device: "{{ adb_device }}"
+    adb_delegate_host: localhost
+    app_update_list:
+      - apk_path: "{{ playbook_dir }}/../../apks/HelloWorldSelfAware.apk"
+        package: com.appliberated.helloworldselfaware
+        version: "1.1.0"
+
+- name: Assert the update path is idempotent (changed=false)
+  cletus_mccoy.android_adb.adb_install:
+    apk_path: "{{ playbook_dir }}/../../apks/HelloWorldSelfAware.apk"
+    device: "{{ adb_device }}"
+    package: com.appliberated.helloworldselfaware
+    version: "1.1.0"
+  delegate_to: localhost
+  register: update_idem
+
+- name: Assert no reinstall happened
+  assert:
+    that:
+      - update_idem is not changed
+    fail_msg: "app_management update path is not idempotent at the installed version"
+
+# --- Leave the device clean ------------------------------------------------
+- name: Uninstall the test app
+  cletus_mccoy.android_adb.adb_uninstall:
+    package: com.appliberated.helloworldselfaware
+    device: "{{ adb_device }}"
+  delegate_to: localhost

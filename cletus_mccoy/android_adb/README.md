@@ -177,11 +177,19 @@ false` to keep one offline phone from stalling a `serial: 1` batch.
   and must be held open. Use `adb_pair` with the port+code while that dialog is
   visible; if it expires, reopen the dialog to get a fresh code and retry.
 
-## Notes for downstream / integration use (v0.4.0)
+## Notes for downstream / integration use (v0.4.1)
 
 - Modules shell out to `adb` on the controller, so target them with
   `delegate_to: localhost` (or set `adb_delegate_host`) while the play host is the
   Android device. Use `gather_facts: no` and `serial: 1` for Wi-Fi ADB hosts.
+- **Idempotency / fingerprint-gating:** the write modules read before they write
+  and report `changed` accurately (`adb_config`/`adb_settings` compare the current
+  value; `adb_install` compares the installed `versionName`). `app_management`'s
+  `bulk_update` now threads `package`/`version`, so an update to an already-present
+  version reports `changed=false` — consumers can fingerprint-gate Android roles
+  like Linux ones. `policy_management` enforces only ADB-settable policies
+  idempotently and guards destructive actions (`remote_wipe` needs
+  `policy_confirm_wipe=true`).
 - **Available and idempotent:** `adb_connect`, `adb_install`, `adb_uninstall`,
   `adb_settings`, `adb_config` (set), `adb_forward`, `adb_reboot` (with wait),
   `adb_app_pref`. `adb_root` is idempotent on adbd's own report. Roles

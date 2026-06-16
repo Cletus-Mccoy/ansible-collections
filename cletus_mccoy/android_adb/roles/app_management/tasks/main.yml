@@ -47,12 +47,16 @@
   delegate_to: "{{ adb_delegate_host }}"
   when: app_action | default('') == 'targeted_remove' and targeted_package | default('') | length > 0
 
-# Update = reinstall the given APK(s). No version is passed, so 'adb install -r'
-# always runs and replaces the existing app.
+# Update = (re)install the given APK(s). Supplying package (+version) on an item
+# makes the update idempotent: a device already at that version reports
+# changed=false instead of reinstalling, so consumers can fingerprint-gate
+# re-runs. A bare-string item (no version) still reinstalls every run.
 - name: Bulk update APKs
   cletus_mccoy.android_adb.adb_install:
     device: "{{ app_device }}"
     apk_path: "{{ item.apk_path | default(item) }}"
+    package: "{{ item.package | default(omit) }}"
+    version: "{{ item.version | default(omit) }}"
   delegate_to: "{{ adb_delegate_host }}"
   loop: "{{ app_update_list | default([]) }}"
   loop_control:
