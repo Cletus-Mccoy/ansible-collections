@@ -1,4 +1,6 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils import ui
 
 

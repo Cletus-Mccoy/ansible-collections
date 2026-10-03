@@ -1,0 +1,11 @@
+minor_changes:
+  - all modules - every module now accepts ``device``, ``adb_path`` and ``adb_server_port``, so ``module_defaults`` for ``group/cletus_mccoy.android_adb.adb`` no longer fails with "Unsupported parameters" on modules that lacked one of them. ``adb_connect`` and ``adb_pair`` take ``adb_path``/``adb_server_port`` only.
+  - adb_config, adb_device_info, adb_device_state, adb_packages - now honour ``adb_path`` instead of always using ``adb`` from ``PATH``.
+  - collection - ``requires_ansible`` raised to ``>=2.16.0``, the oldest ansible-core version that is tested.
+bugfixes:
+  - collection - published tarballs no longer include previous release tarballs, ``__pycache__`` or the local ``tests/integration/integration_config.yml``.
+  - collection - fix the ``repository`` link on Galaxy and add ``issues``/``documentation``/``homepage`` links.
+  - modules - correct ``version_added`` values; several modules claimed versions (1.0.0 to 1.4.0) that were never released.
+  - adb_config - document the ``settings_*`` and ``shell`` actions and the ``namespace``/``command`` options.
+  - adb_logcat - remove a duplicated documentation block.
+  - adb connection plugin - fix documentation schema errors (``name`` key, author format).

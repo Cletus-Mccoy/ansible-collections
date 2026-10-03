@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or "how do I…?"
+    url: https://github.com/Cletus-Mccoy/ansible-collections/discussions/categories/q-a
+    about: Ask in Discussions — answers there help the next person too.
+  - name: Tell us how you use the collection
+    url: https://github.com/Cletus-Mccoy/ansible-collections/discussions/categories/show-and-tell
+    about: Kiosks, device farms, debloating, home lab… knowing this decides what gets built next.

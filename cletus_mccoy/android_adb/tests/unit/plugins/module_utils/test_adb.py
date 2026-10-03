@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 import subprocess
 
 import pytest
@@ -31,6 +34,7 @@ class TestRunAdbCommand:
                 capture_output=True,
                 text=True,
                 timeout=30,
+                check=False,
             )
             assert result == "ok"
 

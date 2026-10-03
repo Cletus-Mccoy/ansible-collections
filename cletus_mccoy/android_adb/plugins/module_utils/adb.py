@@ -1,4 +1,43 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
+import os
+import shutil
 import subprocess
+
+
+def adb_argument_spec(device=True):
+    """Argument spec for the options every module shares.
+
+    Kept identical across modules so ``module_defaults`` for the
+    ``group/cletus_mccoy.android_adb.adb`` action group never trips
+    "Unsupported parameters" on one of them. Documented by the
+    ``cletus_mccoy.android_adb.adb`` doc fragment (``.server`` when
+    ``device=False``).
+    """
+    spec = dict(
+        adb_path=dict(type="str"),
+        adb_server_port=dict(type="int"),
+    )
+    if device:
+        spec["device"] = dict(type="str")
+    return spec
+
+
+def resolve_adb(module):
+    """Resolve the adb binary and pin the adb server port for this module run.
+
+    ``adb_server_port`` is exported as ``ANDROID_ADB_SERVER_PORT``, which adb
+    honours exactly like ``-P``, so every adb call the module makes (including
+    those inside other module_utils helpers) talks to the same server.
+    """
+    adb_path = module.params.get("adb_path") or shutil.which("adb")
+    if not adb_path:
+        module.fail_json(msg="adb not found in PATH")
+    server_port = module.params.get("adb_server_port")
+    if server_port:
+        os.environ["ANDROID_ADB_SERVER_PORT"] = str(server_port)
+    return adb_path
 
 
 class AdbError(Exception):
@@ -45,7 +84,7 @@ def run_adb_command(adb_path, args, device=None, timeout=30, server_port=None):
             cmd,
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout, check=False
         )
     except subprocess.TimeoutExpired:
         raise AdbTimeout(
@@ -90,7 +129,7 @@ def run_adb_binary(adb_path, args, device=None, timeout=30, server_port=None):
     cmd += args
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         raise AdbTimeout(
             "adb command timed out after %ss: %s" % (timeout, " ".join(cmd))
@@ -138,6 +177,7 @@ def kill_server(adb_path, timeout=10, server_port=None):
         subprocess.run(
             _adb_base(adb_path, server_port) + ["kill-server"],
             capture_output=True, text=True, timeout=timeout,
+            check=False,
         )
     except subprocess.TimeoutExpired:
         raise AdbTimeout("adb kill-server timed out after %ss" % timeout)
@@ -159,6 +199,7 @@ def server_responsive(adb_path, timeout=5, server_port=None):
         subprocess.run(
             _adb_base(adb_path, server_port) + ["devices"],
             capture_output=True, text=True, timeout=timeout,
+            check=False,
         )
         return True
     except (subprocess.TimeoutExpired, OSError):
@@ -216,6 +257,7 @@ def probe_device(adb_path, device, connect=False, connect_timeout=5, server_port
             subprocess.run(
                 _adb_base(adb_path, server_port) + ["connect", device],
                 capture_output=True, text=True, timeout=connect_timeout,
+                check=False,
             )
         except (subprocess.TimeoutExpired, OSError):
             return "unreachable"

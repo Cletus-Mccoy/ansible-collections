@@ -1,8 +1,11 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_facts
 short_description: Gather Ansible facts from an Android device over ADB
-version_added: '1.4.0'
+version_added: '0.4.0'
 description:
   - The ADB equivalent of M(ansible.builtin.setup) for Android devices.
   - Runs on the controller (delegated to localhost) and talks to the device
@@ -18,12 +21,6 @@ description:
     fork-server if needed (see O(ensure_server)).
   - Read-only. Never changes device state.
 options:
-  device:
-    description:
-      - Device serial or C(ip:port) to target. When omitted, the single
-        attached device is used.
-    required: false
-    type: str
   connect:
     description:
       - When the device looks like C(ip:port), run a bounded C(adb connect)
@@ -68,21 +65,10 @@ options:
     required: false
     type: bool
     default: true
-  adb_server_port:
-    description:
-      - Run against a dedicated ADB server on this port (C(adb -P <port>))
-        instead of the shared C(tcp:5037) server. Give each device a distinct
-        port (e.g. from inventory) to isolate them and avoid shared-server
-        contention under parallel runs.
-    required: false
-    type: int
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
+  - Kasper Daems (@Cletus-Mccoy)
 '''
 
 EXAMPLES = r'''
@@ -128,9 +114,9 @@ changed:
   type: bool
 '''
 
-import shutil
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import (
     adb_shell,
     ensure_server as adb_ensure_server,
@@ -219,22 +205,18 @@ def gather(adb_path, device, subsets, timeout, server_port=None):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            device=dict(type="str", required=False),
+            **adb_argument_spec(),
             connect=dict(type="bool", required=False, default=False),
             connect_timeout=dict(type="int", required=False, default=5),
             command_timeout=dict(type="int", required=False, default=30),
             gather_subset=dict(type="list", elements="str", required=False, default=["min"]),
             fail_on_unreachable=dict(type="bool", required=False, default=False),
             ensure_server=dict(type="bool", required=False, default=True),
-            adb_server_port=dict(type="int", required=False, default=None),
-            adb_path=dict(type="str", required=False, default=None),
         ),
         supports_check_mode=True,
     )
 
-    adb_path = module.params["adb_path"] or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     device = module.params.get("device")
     connect_timeout = module.params["connect_timeout"]

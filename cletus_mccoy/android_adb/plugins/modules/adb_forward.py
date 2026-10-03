@@ -1,8 +1,11 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_forward
 short_description: Manage ADB port forwards for an Android device
-version_added: '1.0.0'
+version_added: '0.1.0'
 description:
   - Creates or removes an ADB port forward (C(adb forward) / C(adb forward --remove)).
   - Idempotent. Existing forwards are read from C(adb forward --list); a forward
@@ -25,18 +28,10 @@ options:
     type: str
     choices: [present, absent]
     default: present
-  device:
-    description:
-      - Device serial or C(IP:port) to target.
-    required: false
-    type: str
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
+  - Kasper Daems (@Cletus-Mccoy)
 '''
 
 EXAMPLES = r'''
@@ -63,7 +58,7 @@ msg:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
-import shutil
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 
 
 def _existing_forward(adb_path, device, local):
@@ -84,12 +79,11 @@ def _existing_forward(adb_path, device, local):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            **adb_argument_spec(),
             local=dict(type='str', required=True),
             remote=dict(type='str', required=False, default=None),
             state=dict(type='str', required=False, default='present',
                        choices=['present', 'absent']),
-            device=dict(type='str', required=False, default=None),
-            adb_path=dict(type='str', required=False, default=None),
         ),
         required_if=[("state", "present", ["remote"])],
         supports_check_mode=True,
@@ -99,7 +93,7 @@ def main():
     remote = module.params['remote']
     state = module.params['state']
     device = module.params['device']
-    adb_path = module.params['adb_path'] or shutil.which('adb')
+    adb_path = resolve_adb(module)
     check_mode = getattr(module, 'check_mode', False)
 
     if not adb_path:

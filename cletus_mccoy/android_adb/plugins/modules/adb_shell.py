@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # (c) 2026 Kasper Daems
 # Ansible module to run arbitrary adb shell commands on a device
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
@@ -17,26 +19,11 @@ options:
       - The shell command to run on the device.
     required: true
     type: str
-  device:
-    description:
-      - Device serial or C(IP:port) to target.
-    required: false
-    type: str
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
-    default: adb
-  adb_server_port:
-    description:
-      - Run against a dedicated ADB server on this port (C(adb -P <port>))
-        instead of the shared C(tcp:5037) server, for per-device isolation.
-    required: false
-    type: int
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
-version_added: '1.0.0'
+  - Kasper Daems (@Cletus-Mccoy)
+version_added: '0.2.0'
 '''
 
 EXAMPLES = r'''
@@ -62,15 +49,14 @@ stdout:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_shell, AdbError
 
 
 def main():
     module_args = dict(
+        **adb_argument_spec(),
         command=dict(type='str', required=True),
-        device=dict(type='str', required=False, default=None),
-        adb_path=dict(type='str', required=False, default='adb'),
-        adb_server_port=dict(type='int', required=False, default=None),
     )
 
     module = AnsibleModule(
@@ -80,7 +66,7 @@ def main():
 
     command = module.params['command']
     device = module.params['device']
-    adb_path = module.params['adb_path']
+    adb_path = resolve_adb(module)
     server_port = module.params['adb_server_port']
 
     try:
@@ -90,6 +76,7 @@ def main():
         module.fail_json(msg=str(e))
     except Exception as e:
         module.fail_json(msg='Unexpected error: %s' % str(e))
+
 
 if __name__ == '__main__':
     main()

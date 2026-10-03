@@ -1,4 +1,6 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from unittest.mock import patch
 from ansible_collections.cletus_mccoy.android_adb.plugins.modules import adb_app_pref
 
@@ -45,7 +47,7 @@ def run_module(params, reader, recorder):
               'state': 'present', 'device': None, 'value': None}, **params),
     )
     with patch.object(adb_app_pref, 'run_adb_command', side_effect=reader), \
-         patch.object(adb_app_pref, '_write_back', side_effect=recorder):
+            patch.object(adb_app_pref, '_write_back', side_effect=recorder):
         adb_app_pref.main.__globals__['AnsibleModule'] = lambda **kwargs: module
         try:
             adb_app_pref.main()

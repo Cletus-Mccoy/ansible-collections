@@ -9,6 +9,9 @@ status line with the XML. So :func:`dump_ui` always dumps to ``/sdcard`` and
 reads the file.
 """
 
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 import re
 import xml.etree.ElementTree as ET
 

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # (c) 2026 Kasper Daems
 # Ansible module to toggle adb root / unroot and re-establish the connection
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
@@ -29,12 +31,6 @@ options:
     type: str
     choices: [root, unroot]
     default: root
-  device:
-    description:
-      - Device serial or C(IP:port) to target. If an C(IP:port) is given it is
-        also used as the reconnect target.
-    required: false
-    type: str
   reconnect:
     description:
       - After toggling, reconnect to O(device) when it looks like an C(IP:port).
@@ -55,13 +51,10 @@ options:
     required: false
     type: int
     default: 10
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
+  - Kasper Daems (@Cletus-Mccoy)
 version_added: '0.3.0'
 '''
 
@@ -101,11 +94,11 @@ msg:
 '''
 
 import re
-import shutil
 import subprocess
 import time
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 
 # device looks like an IP:port (or host:port) wireless target rather than a serial
 _HOSTPORT_RE = re.compile(r"^[^\s]+:\d+$")
@@ -116,7 +109,7 @@ def _run(adb_path, args, device=None, timeout=15):
     if device:
         cmd += ["-s", device]
     cmd += args
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
     return proc.returncode, ((proc.stdout or "") + (proc.stderr or "")).strip()
 
 
@@ -149,7 +142,7 @@ def _classify(state, out):
 
 
 def _offline_serials(adb_path):
-    proc = subprocess.run([adb_path, "devices"], capture_output=True, text=True, timeout=10)
+    proc = subprocess.run([adb_path, "devices"], capture_output=True, text=True, timeout=10, check=False)
     offline = []
     for line in proc.stdout.splitlines()[1:]:
         line = line.strip()
@@ -164,19 +157,16 @@ def _offline_serials(adb_path):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            **adb_argument_spec(),
             state=dict(type="str", default="root", choices=["root", "unroot"]),
-            device=dict(type="str", required=False, default=None),
             reconnect=dict(type="bool", required=False, default=True),
             prune_stale=dict(type="bool", required=False, default=True),
             reconnect_timeout=dict(type="int", required=False, default=10),
-            adb_path=dict(type="str", required=False, default=None),
         ),
         supports_check_mode=True,
     )
 
-    adb_path = module.params["adb_path"] or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     state = module.params["state"]
     device = module.params["device"]
@@ -187,7 +177,7 @@ def main():
                          root_state=state, reconnected=False, pruned=[])
 
     try:
-        _, out = _run(adb_path, [state], device=device)
+        _rc, out = _run(adb_path, [state], device=device)
         changed, root_state, fatal = _classify(state, out)
         if fatal:
             module.fail_json(msg=fatal, changed=False)
@@ -208,7 +198,7 @@ def main():
             if module.params["prune_stale"]:
                 for serial in _offline_serials(adb_path):
                     subprocess.run([adb_path, "disconnect", serial],
-                                   capture_output=True, text=True, timeout=10)
+                                   capture_output=True, text=True, timeout=10, check=False)
                     pruned.append(serial)
 
             if not reconnected:

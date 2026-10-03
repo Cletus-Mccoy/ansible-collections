@@ -1,6 +1,9 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 name: adb_devices
-author: Kasper Daems
+author: Kasper Daems (@Cletus-Mccoy)
 short_description: Inventory source for Android devices reachable via ADB
 description:
   - Discovers Android devices from C(adb devices -l) and adds them to inventory.
@@ -44,7 +47,7 @@ options:
     required: false
     type: bool
     default: true
-version_added: '0.2.0'
+version_added: '0.1.0'
 '''
 
 EXAMPLES = r'''
@@ -79,7 +82,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                               'adb.yml', 'adb.yaml'))
 
     def _run(self, args):
-        result = subprocess.run(args, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(args, capture_output=True, text=True, timeout=30, check=False)
         if result.returncode != 0:
             raise AnsibleParserError(
                 "adb command failed: %s" % (result.stderr.strip() or result.stdout.strip())

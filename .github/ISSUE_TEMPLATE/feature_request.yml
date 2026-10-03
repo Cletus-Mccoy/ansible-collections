@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest a new module, option or role
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What are you trying to automate?
+      description: The real-world use case helps more than the proposed solution — e.g. "provisioning 40 kiosk tablets", "resetting test phones between CI runs".
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like the collection to do?
+      description: If you do this today with `adb_shell`, paste the command(s).
+    validations:
+      required: true
+
+  - type: input
+    id: devices
+    attributes:
+      label: Devices / Android versions involved
+      placeholder: e.g. Samsung Tab A8, Android 14, not rooted

@@ -1,0 +1,25 @@
+plugins/modules/adb_app_pref.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_config.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_connect.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_device_info.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_device_state.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_facts.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_files.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_forward.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_install.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_intent.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_logcat.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_packages.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_pair.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_reboot.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_root.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_screencap.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_screenrecord.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_settings.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_shell.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_ui_dump.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_ui_tap.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/modules/adb_uninstall.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/connection/adb.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+plugins/inventory/adb_devices.py validate-modules:missing-gplv3-license # collection is MIT-licensed
+tests/unit/plugins/module_utils/test_ui.py pep8:E501 # literal uiautomator XML fixture

@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_connect
@@ -35,22 +38,11 @@ options:
     required: false
     type: bool
     default: false
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
-  adb_server_port:
-    description:
-      - Connect using a dedicated ADB server on this port (C(adb -P <port>))
-        instead of the shared C(tcp:5037) server. Give each device a distinct
-        port (e.g. from inventory) to isolate them and avoid shared-server
-        contention under parallel runs.
-    required: false
-    type: int
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb.server
 author:
-  - Kasper Daems
-version_added: '1.3.0'
+  - Kasper Daems (@Cletus-Mccoy)
+version_added: '0.1.0'
 '''
 
 EXAMPLES = r'''
@@ -83,8 +75,8 @@ pruned:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 import subprocess
-import shutil
 
 
 def _base(adb_path, server_port=None):
@@ -98,7 +90,7 @@ def _base(adb_path, server_port=None):
 def _is_connected(adb_path, target, server_port=None):
     """Return True if ``target`` (ip:port) shows as a device in ``adb devices``."""
     proc = subprocess.run(
-        _base(adb_path, server_port) + ["devices"], capture_output=True, text=True, timeout=10
+        _base(adb_path, server_port) + ["devices"], capture_output=True, text=True, timeout=10, check=False
     )
     for line in proc.stdout.splitlines()[1:]:
         line = line.strip()
@@ -114,7 +106,7 @@ def _is_connected(adb_path, target, server_port=None):
 def _offline_serials(adb_path, server_port=None):
     """Return serials currently shown as ``offline`` in ``adb devices``."""
     proc = subprocess.run(
-        _base(adb_path, server_port) + ["devices"], capture_output=True, text=True, timeout=10
+        _base(adb_path, server_port) + ["devices"], capture_output=True, text=True, timeout=10, check=False
     )
     offline = []
     for line in proc.stdout.splitlines()[1:]:
@@ -130,20 +122,17 @@ def _offline_serials(adb_path, server_port=None):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            **adb_argument_spec(device=False),
             ip=dict(type="str", required=True),
             port=dict(type="int", required=True),
             state=dict(type="str", required=False, default="present",
                        choices=["present", "absent"]),
             prune_offline=dict(type="bool", required=False, default=False),
-            adb_path=dict(type="str", required=False, default=None),
-            adb_server_port=dict(type="int", required=False, default=None),
         ),
         supports_check_mode=True,
     )
 
-    adb_path = module.params["adb_path"] or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     ip = module.params["ip"]
     port = module.params["port"]
@@ -160,7 +149,7 @@ def main():
                 for serial in _offline_serials(adb_path, server_port=server_port):
                     if not module.check_mode:
                         subprocess.run(_base(adb_path, server_port) + ["disconnect", serial],
-                                       capture_output=True, text=True, timeout=10)
+                                       capture_output=True, text=True, timeout=10, check=False)
                     pruned.append(serial)
 
             if already_connected:
@@ -172,6 +161,7 @@ def main():
             proc = subprocess.run(
                 _base(adb_path, server_port) + ["connect", target],
                 capture_output=True, text=True, timeout=10,
+                check=False,
             )
             out = (proc.stdout or "") + (proc.stderr or "")
             if proc.returncode == 0 and ("connected to" in proc.stdout or "already connected" in proc.stdout):
@@ -186,6 +176,7 @@ def main():
             proc = subprocess.run(
                 _base(adb_path, server_port) + ["disconnect", target],
                 capture_output=True, text=True, timeout=10,
+                check=False,
             )
             if proc.returncode == 0:
                 module.exit_json(changed=True, msg=proc.stdout.strip() or f"disconnected {target}")

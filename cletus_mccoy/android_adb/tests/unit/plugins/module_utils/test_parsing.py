@@ -1,4 +1,5 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 from parsing import (
     parse_getprop,
@@ -36,6 +37,7 @@ class TestParseAdbdRoot:
 
     def test_empty(self):
         assert parse_adbd_root("") is False
+
 
 SAMPLE_GETPROP = """\
 [ro.product.manufacturer]: [Google]

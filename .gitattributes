@@ -1,0 +1,5 @@
+# Ansible sanity tests require LF; keep Windows checkouts from reintroducing CRLF.
+* text=auto eol=lf
+*.apk binary
+*.png binary
+*.tar.gz binary

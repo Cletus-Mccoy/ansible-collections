@@ -1,4 +1,6 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from unittest.mock import patch
 from ansible_collections.cletus_mccoy.android_adb.plugins.modules import adb_ui_tap
 
@@ -39,7 +41,7 @@ def run_module(params):
         return ''
 
     with patch.object(adb_ui_tap, 'dump_ui', return_value=SAMPLE), \
-         patch.object(adb_ui_tap, 'run_adb_command', side_effect=fake_run):
+            patch.object(adb_ui_tap, 'run_adb_command', side_effect=fake_run):
         adb_ui_tap.main.__globals__['AnsibleModule'] = lambda **kwargs: module
         try:
             adb_ui_tap.main()

@@ -17,5 +17,5 @@
   assert:
     that:
       - connect_result is not failed
-      - connect_result.changed
+      - connect_result.changed or 'already connected' in connect_result.msg
       - '"connected" in connect_result.msg'

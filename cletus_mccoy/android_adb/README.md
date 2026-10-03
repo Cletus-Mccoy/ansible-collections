@@ -1,6 +1,28 @@
 # cletus_mccoy.android_adb
 
+[![CI](https://github.com/Cletus-Mccoy/ansible-collections/actions/workflows/android_adb.yml/badge.svg)](https://github.com/Cletus-Mccoy/ansible-collections/actions/workflows/android_adb.yml)
+[![Ansible Galaxy](https://img.shields.io/badge/galaxy-cletus__mccoy.android__adb-blue?logo=ansible)](https://galaxy.ansible.com/ui/repo/published/cletus_mccoy/android_adb/)
+
 Ansible collection to manage Android devices over ADB.
+
+> **Using this collection?** I'd love to hear what you automate with it —
+> kiosks, test-device farms, debloating, a home lab… It directly decides what gets
+> built next. Share it in [Discussions](https://github.com/Cletus-Mccoy/ansible-collections/discussions),
+> or [open an issue](https://github.com/Cletus-Mccoy/ansible-collections/issues/new/choose)
+> for bugs and feature requests.
+
+## Installation
+
+```bash
+ansible-galaxy collection install cletus_mccoy.android_adb
+```
+
+Or in `requirements.yml`:
+
+```yaml
+collections:
+  - name: cletus_mccoy.android_adb
+```
 
 ## Features
 - ADB connection plugin (timeouts + retries)
@@ -52,8 +74,27 @@ Ansible collection to manage Android devices over ADB.
 - [policy_management](roles/policy_management/README.md): Apply device policies
 
 ## Requirements
+- ansible-core 2.16 or newer
 - adb installed on controller
 - Android device with ADB enabled
+
+## Common options
+
+Every module accepts `adb_path` and `adb_server_port`, so they can be set once
+for the whole play with the `adb` action group:
+
+```yaml
+- hosts: android
+  gather_facts: false
+  module_defaults:
+    group/cletus_mccoy.android_adb.adb:
+      adb_path: /opt/platform-tools/adb
+      adb_server_port: "{{ adb_server_port | default(omit) }}"
+```
+
+`device` is accepted by every module that targets a device, but not by
+`adb_connect`/`adb_pair` (they take `ip`/`port`), so set it per module rather
+than for the whole group if a play also connects or pairs.
 
 ## Two configuration subsystems
 
@@ -121,7 +162,9 @@ port scan then correctly falls back to the fixed `adb_port`.
 First-time setup is often unavoidably UI-driven (Tailscale login, toggling
 "Rooted debugging", etc.). Use `adb_screencap` to see the screen, `adb_ui_dump` to
 read the view hierarchy, and `adb_ui_tap` to tap by `text`/`resource_id` or raw
-coordinates. **Force-stop foreground-stealing overlay apps first** (e.g. a
+coordinates. On Xiaomi/POCO/Redmi (MIUI/HyperOS) phones, taps and key events are
+refused with `INJECT_EVENTS` unless Developer options → **USB debugging (Security
+settings)** is enabled. **Force-stop foreground-stealing overlay apps first** (e.g. a
 rotation-lock app) — they grab focus and fight UI automation.
 
 ## Gathering facts (the `setup`-module equivalent)
@@ -178,9 +221,9 @@ false` to keep one offline phone from stalling a `serial: 1` batch.
         adb_server_port: "{{ adb_server_port | default(omit) }}"
   ```
   With isolated servers the hosts no longer contend on `tcp:5037`, so you can drop
-  `serial: 1` and run with a normal `forks`/throttle. `adb_server_port` is
-  supported on `adb_facts`, `adb_connect`, `adb_shell`, and `adb_pair` (and the
-  shared `module_utils.adb` engine threads it through `-P`).
+  `serial: 1` and run with a normal `forks`/throttle. Every module supports
+  `adb_server_port` (it is exported as `ANDROID_ADB_SERVER_PORT` for all adb
+  calls the module makes).
 
 ## Persistent vs on-demand ADB strategy
 
@@ -229,3 +272,14 @@ false` to keep one offline phone from stalling a `serial: 1` batch.
     - name: Get device info
       cletus_mccoy.android_adb.adb_device_info:
 ```
+
+## Contributing, feedback and changes
+
+- What changed in each release: [CHANGELOG.md](CHANGELOG.md)
+- Bugs and feature requests: [GitHub Issues](https://github.com/Cletus-Mccoy/ansible-collections/issues/new/choose)
+- Questions and "how I use it": [GitHub Discussions](https://github.com/Cletus-Mccoy/ansible-collections/discussions)
+- Pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## License
+
+MIT — see [LICENSE](LICENSE).

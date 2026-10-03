@@ -2,7 +2,7 @@
 ---
 # Collections must specify a minimum required ansible version to upload
 # to galaxy
-requires_ansible: '>=2.9.10'
+requires_ansible: '>=2.16.0'
 
 # Groups of modules that share a common set of options, so module_defaults can
 # target the whole collection at once (e.g. set adb_path/device for all adb_*).

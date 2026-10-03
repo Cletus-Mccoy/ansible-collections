@@ -1,4 +1,7 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
+import shutil
 from ansible_collections.cletus_mccoy.android_adb.plugins.modules import adb_facts
 
 
@@ -33,7 +36,7 @@ def run_module(monkeypatch, params, probe_state, shell_map=None):
     module = DummyModule(full)
 
     monkeypatch.setattr(adb_facts, "AnsibleModule", lambda **kw: module)
-    monkeypatch.setattr(adb_facts.shutil, "which", lambda x: "/usr/bin/adb")
+    monkeypatch.setattr(shutil, "which", lambda x: "/usr/bin/adb")
     monkeypatch.setattr(adb_facts, "adb_ensure_server",
                         lambda *a, **k: {"restarted": False, "responsive": True})
     monkeypatch.setattr(adb_facts, "probe_device", lambda *a, **k: probe_state)

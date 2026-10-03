@@ -1,4 +1,3 @@
-
 # Integration test for adb_forward module
 - name: Try to forward a port (non-fatal)
   cletus_mccoy.android_adb.adb_forward:

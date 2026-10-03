@@ -1,119 +1,23 @@
 ---
-# Integration test for adb_app_pref. Requires root (run adb_root first).
-# Operates on Fully Kiosk (de.ozerov.fully): adds then removes a harmless test
-# key, asserting idempotency AND that the file's SELinux context is preserved.
-# A backup is taken first for safety.
+# Integration test for adb_app_pref. Needs a root shell (run adb_root first) and
+# Fully Kiosk (de.ozerov.fully) installed; skipped otherwise.
 
-- name: Set test fixtures
-  ansible.builtin.set_fact:
-    fully_pkg: de.ozerov.fully
-    fully_file: de.ozerov.fully_preferences.xml
-    fully_prefs: /data/data/de.ozerov.fully/shared_prefs/de.ozerov.fully_preferences.xml
-    itest_key: ansible_itest_flag
-
-- name: Back up the prefs file (safety net)
+- name: Check for a root shell and the Fully Kiosk package
   cletus_mccoy.android_adb.adb_shell:
     device: "{{ adb_device }}"
-    command: "cp '{{ fully_prefs }}' /data/local/tmp/fully_prefs_backup.xml"
+    command: "id -u; pm path de.ozerov.fully >/dev/null 2>&1 && echo fully || echo no-fully"
+  register: app_pref_env
+  changed_when: false
 
-- name: Record the original SELinux context + owner
-  cletus_mccoy.android_adb.adb_shell:
-    device: "{{ adb_device }}"
-    command: "ls -Z '{{ fully_prefs }}'"
-  register: ctx_before
+- name: Run the adb_app_pref tests
+  ansible.builtin.include_tasks: app_pref_tests.yml
+  when:
+    - app_pref_env.stdout_lines[0] | trim == '0'
+    - "'no-fully' not in app_pref_env.stdout"
 
-- name: Multiple shared_prefs files without 'file' fails clearly
-  cletus_mccoy.android_adb.adb_app_pref:
-    device: "{{ adb_device }}"
-    package: "{{ fully_pkg }}"
-    key: "{{ itest_key }}"
-    type: boolean
-    value: "true"
-  register: nofile
-  ignore_errors: true
-
-- name: Assert the multi-file guard fired
-  assert:
-    that:
-      - nofile is failed
-      - "'specify' in nofile.msg"
-
-- name: Add a harmless boolean test key
-  cletus_mccoy.android_adb.adb_app_pref:
-    device: "{{ adb_device }}"
-    package: "{{ fully_pkg }}"
-    file: "{{ fully_file }}"
-    key: "{{ itest_key }}"
-    type: boolean
-    value: "true"
-  register: add1
-
-- name: Re-add the same value (idempotent)
-  cletus_mccoy.android_adb.adb_app_pref:
-    device: "{{ adb_device }}"
-    package: "{{ fully_pkg }}"
-    file: "{{ fully_file }}"
-    key: "{{ itest_key }}"
-    type: boolean
-    value: "true"
-  register: add2
-
-- name: Assert add changed then was idempotent
-  assert:
-    that:
-      - add1.changed == true
-      - add1.previous_value is none
-      - add2.changed == false
-
-- name: Record SELinux context after the in-place write
-  cletus_mccoy.android_adb.adb_shell:
-    device: "{{ adb_device }}"
-    command: "ls -Z '{{ fully_prefs }}'"
-  register: ctx_after
-
-- name: Assert inode owner + SELinux context were preserved
-  assert:
-    that:
-      - ctx_after.stdout == ctx_before.stdout
-    fail_msg: "context changed!\nbefore: {{ ctx_before.stdout }}\nafter:  {{ ctx_after.stdout }}"
-
-- name: Remove the test key
-  cletus_mccoy.android_adb.adb_app_pref:
-    device: "{{ adb_device }}"
-    package: "{{ fully_pkg }}"
-    file: "{{ fully_file }}"
-    key: "{{ itest_key }}"
-    state: absent
-  register: rm1
-
-- name: Assert removal changed
-  assert:
-    that:
-      - rm1.changed == true
-
-- name: Verify the file is still intact (a known key survives)
-  cletus_mccoy.android_adb.adb_shell:
-    device: "{{ adb_device }}"
-    command: "grep -c 'name=\"remoteAdmin\"' '{{ fully_prefs }}'"
-  register: intact
-
-- name: Assert original content preserved and test key gone
-  assert:
-    that:
-      - intact.stdout | trim | int >= 1
-
-- name: Confirm the test key is no longer present
-  cletus_mccoy.android_adb.adb_shell:
-    device: "{{ adb_device }}"
-    command: "grep -c '{{ itest_key }}' '{{ fully_prefs }}' || true"
-  register: gone
-
-- name: Assert test key removed
-  assert:
-    that:
-      - gone.stdout | trim | int == 0
-
-- name: Clean up the backup
-  cletus_mccoy.android_adb.adb_shell:
-    device: "{{ adb_device }}"
-    command: "rm -f /data/local/tmp/fully_prefs_backup.xml"
+- name: Skip when root or Fully Kiosk is missing
+  ansible.builtin.debug:
+    msg: "Skipping adb_app_pref tests: needs a root adb shell and de.ozerov.fully installed (got: {{ app_pref_env.stdout_lines | join(', ') }})."
+  when: >-
+    app_pref_env.stdout_lines[0] | trim != '0'
+    or 'no-fully' in app_pref_env.stdout

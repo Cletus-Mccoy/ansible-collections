@@ -1,4 +1,4 @@
-tests/output/
+**/tests/output/
 .env
 # match in any collection, not just repo root (collections live under <ns>/<name>/)
 integration_config.yml

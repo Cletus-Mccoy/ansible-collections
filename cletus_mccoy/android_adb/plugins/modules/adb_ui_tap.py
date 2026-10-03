@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # (c) 2026 Kasper Daems
 # Ansible module to tap a UI element (by text/resource-id) or coordinates
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
@@ -43,16 +45,10 @@ options:
     required: false
     type: int
     default: 0
-  device:
-    description: [Device serial or C(IP:port) to target.]
-    required: false
-    type: str
-  adb_path:
-    description: [Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.]
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
+  - Kasper Daems (@Cletus-Mccoy)
 version_added: '0.3.0'
 '''
 
@@ -90,9 +86,9 @@ matched:
   type: int
 '''
 
-import shutil
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import (
     AdbError,
     run_adb_command,
@@ -107,14 +103,13 @@ from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.ui import
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            **adb_argument_spec(),
             text=dict(type="str", required=False, default=None),
             resource_id=dict(type="str", required=False, default=None),
             content_desc=dict(type="str", required=False, default=None),
             x=dict(type="int", required=False, default=None),
             y=dict(type="int", required=False, default=None),
             index=dict(type="int", required=False, default=0),
-            device=dict(type="str", required=False, default=None),
-            adb_path=dict(type="str", required=False, default=None),
         ),
         required_one_of=[["text", "resource_id", "content_desc", "x"]],
         required_together=[["x", "y"]],
@@ -124,9 +119,7 @@ def main():
         supports_check_mode=True,
     )
 
-    adb_path = module.params["adb_path"] or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     device = module.params["device"]
     x = module.params["x"]

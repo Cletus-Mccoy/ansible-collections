@@ -14,11 +14,15 @@ and device targeting are consistent across the collection, and they raise
 :class:`AdbError` (not ``RuntimeError``) on failure.
 """
 
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import (
     run_adb_command,
 )
-from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.parsing import (
-    parse_getprop,  # noqa: F401  (re-exported for backwards compatibility)
+# parse_getprop is re-exported for backwards compatibility.
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.parsing import (  # noqa: F401 pylint: disable=unused-import
+    parse_getprop,
 )
 
 # ``settings get`` prints this literal string when a key is unset.

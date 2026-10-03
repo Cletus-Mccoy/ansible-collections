@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_intent
@@ -9,11 +12,6 @@ description:
   - This is an action module — sending an intent is not idempotent, so it always
     reports C(changed=true) on success.
 options:
-  device:
-    description:
-      - Device serial or C(IP:port) to target.
-    required: false
-    type: str
   command:
     description:
       - Which C(am) sub-command to use.
@@ -51,14 +49,11 @@ options:
       - String extras to pass, as a dict of key/value pairs (each rendered as C(--es key value)).
     required: false
     type: dict
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
-version_added: '0.2.0'
+  - Kasper Daems (@Cletus-Mccoy)
+version_added: '0.1.0'
 '''
 
 EXAMPLES = r'''
@@ -90,9 +85,9 @@ stdout:
   returned: success
 '''
 
-import shutil
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 
 
 def _build_am_args(params):
@@ -115,7 +110,7 @@ def _build_am_args(params):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            device=dict(type="str", required=False, default=None),
+            **adb_argument_spec(),
             command=dict(type="str", required=False, default="start",
                          choices=["start", "startservice", "broadcast"]),
             action=dict(type="str", required=False, default=None),
@@ -124,15 +119,12 @@ def main():
             mime_type=dict(type="str", required=False, default=None),
             category=dict(type="str", required=False, default=None),
             extras=dict(type="dict", required=False, default=None),
-            adb_path=dict(type="str", required=False, default=None),
         ),
         required_one_of=[["action", "component"]],
         supports_check_mode=True,
     )
 
-    adb_path = module.params["adb_path"] or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     device = module.params["device"]
     am_args = _build_am_args(module.params)

@@ -1,4 +1,6 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from unittest.mock import patch
 from ansible_collections.cletus_mccoy.android_adb.plugins.modules import adb_intent
 import ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb as adbmod
@@ -72,11 +74,11 @@ def test_start_succeeds():
 
 
 def test_error_marker_fails():
-    res, _ = run_module({'component': 'com.x/.Y'}, shell_output='Error: Activity not started')
+    res, _rec = run_module({'component': 'com.x/.Y'}, shell_output='Error: Activity not started')
     assert 'msg' in res and 'failed' in res['msg'].lower()
 
 
 def test_check_mode():
-    res, _ = run_module({'action': 'a'}, check_mode=True)
+    res, _rec = run_module({'action': 'a'}, check_mode=True)
     assert res['changed'] is True
     assert 'would run' in res['msg']

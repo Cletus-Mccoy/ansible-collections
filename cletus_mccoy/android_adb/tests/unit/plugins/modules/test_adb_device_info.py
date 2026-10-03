@@ -1,5 +1,9 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
+import shutil
 from ansible_collections.cletus_mccoy.android_adb.plugins.modules import adb_device_info
+
 
 class DummyModule:
     def __init__(self):
@@ -7,13 +11,16 @@ class DummyModule:
         self.failed = False
         self.msg = None
         self.result = None
+
     def fail_json(self, msg):
         self.failed = True
         self.msg = msg
         raise Exception(msg)
+
     def exit_json(self, **kwargs):
         self.result = kwargs
         return kwargs
+
 
 def test_run_module(monkeypatch):
     # Patch adb_shell to return fake outputs
@@ -28,7 +35,7 @@ def test_run_module(monkeypatch):
             return "2: wlan0: ..."
         return ""
     monkeypatch.setattr(adb_device_info, "adb_shell", fake_adb_shell)
-    monkeypatch.setattr(adb_device_info.shutil, "which", lambda x: "/usr/bin/adb")
+    monkeypatch.setattr(shutil, "which", lambda x: "/usr/bin/adb")
     monkeypatch.setattr(adb_device_info, "parse_getprop", lambda x: {"ro.product.model": "Pixel 5"})
     monkeypatch.setattr(adb_device_info, "extract_device_info", lambda props: {"model": props["ro.product.model"]})
     module = DummyModule()

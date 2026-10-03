@@ -1,0 +1,86 @@
+name: Bug report
+description: Something in a module, role or plugin doesn't work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. ADB behaviour differs a lot
+        between Android versions and ROMs, so the device details below are
+        usually what makes a bug reproducible.
+
+  - type: input
+    id: component
+    attributes:
+      label: Module / role / plugin
+      placeholder: e.g. cletus_mccoy.android_adb.adb_settings
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: task
+    attributes:
+      label: Task / playbook snippet
+      description: The smallest task that shows the problem. Remove secrets and pairing codes.
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Task output, ideally with `-vvv`.
+      render: text
+
+  - type: input
+    id: collection-version
+    attributes:
+      label: Collection version
+      description: "`ansible-galaxy collection list cletus_mccoy.android_adb`"
+      placeholder: e.g. 0.5.0
+    validations:
+      required: true
+
+  - type: input
+    id: ansible-version
+    attributes:
+      label: ansible-core version
+      placeholder: e.g. 2.17.4
+    validations:
+      required: true
+
+  - type: input
+    id: adb-version
+    attributes:
+      label: adb version
+      description: "`adb version`"
+      placeholder: e.g. 35.0.2
+
+  - type: input
+    id: device
+    attributes:
+      label: Device, Android version and ROM
+      placeholder: e.g. Pixel 7, Android 15, stock / LineageOS 22 / phh GSI
+    validations:
+      required: true
+
+  - type: dropdown
+    id: root
+    attributes:
+      label: Root / connection
+      multiple: true
+      options:
+        - Not rooted
+        - Rooted (adb root / userdebug)
+        - Rooted (Magisk su)
+        - USB
+        - Wireless (paired, Android 11+)
+        - Wireless (persistent tcp port)

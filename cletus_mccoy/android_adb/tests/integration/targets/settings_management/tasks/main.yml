@@ -1,20 +1,46 @@
 ---
-- name: Test bulk set settings
-  include_role:
+# Integration test for the settings_management role. Leaves the device unchanged:
+# the bulk-set writes the value a setting already has, so it exercises the role's
+# set path (read-compare-write) idempotently, then reads values back.
+
+- name: Read the current screen_off_timeout
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: system
+    key: screen_off_timeout
+    state: read
+  register: timeout_before
+
+- name: Bulk set screen_off_timeout to its current value
+  ansible.builtin.include_role:
     name: cletus_mccoy.android_adb.settings_management
   vars:
+    settings_device: "{{ adb_device }}"
     settings_bulk:
       - namespace: system
-        key: screen_brightness
-        value: 100
-      - namespace: secure
-        key: location_providers_allowed
-        value: gps
+        key: screen_off_timeout
+        value: "{{ timeout_before.value }}"
 
 - name: Test get settings
-  include_role:
+  ansible.builtin.include_role:
     name: cletus_mccoy.android_adb.settings_management
   vars:
+    settings_device: "{{ adb_device }}"
     settings_get:
       - namespace: global
         key: airplane_mode_on
+      - namespace: system
+        key: screen_off_timeout
+
+- name: Confirm the value is unchanged
+  cletus_mccoy.android_adb.adb_settings:
+    device: "{{ adb_device }}"
+    namespace: system
+    key: screen_off_timeout
+    state: read
+  register: timeout_after
+
+- name: Assert the device was left as it was
+  ansible.builtin.assert:
+    that:
+      - timeout_after.value == timeout_before.value

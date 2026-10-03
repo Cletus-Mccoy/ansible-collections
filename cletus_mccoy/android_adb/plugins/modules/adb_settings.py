@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_settings
@@ -12,12 +15,6 @@ description:
   - The module is idempotent. It reads the current value and only writes when it
     differs from the desired value, returning C(changed=false) otherwise.
 options:
-  device:
-    description:
-      - Device serial or C(IP:port) to target. If omitted, the single attached
-        device is used.
-    required: false
-    type: str
   namespace:
     description:
       - Settings namespace.
@@ -57,13 +54,10 @@ options:
     type: str
     choices: [present, absent, read]
     default: present
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
+  - Kasper Daems (@Cletus-Mccoy)
 version_added: '0.2.0'
 '''
 
@@ -109,9 +103,9 @@ changed:
   type: bool
 '''
 
-import shutil
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import AdbError
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.config import (
     settings_get,
@@ -123,21 +117,18 @@ from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.config im
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            device=dict(type="str", required=False, default=None),
+            **adb_argument_spec(),
             namespace=dict(type="str", required=True, choices=["system", "secure", "global"]),
-            key=dict(type="str", required=True),
+            key=dict(type="str", required=True, no_log=False),
             value=dict(type="str", required=False, default=None),
             state=dict(type="str", required=False, default="present",
                        choices=["present", "absent", "read"]),
-            adb_path=dict(type="str", required=False, default=None),
         ),
         required_if=[("state", "present", ["value"])],
         supports_check_mode=True,
     )
 
-    adb_path = module.params["adb_path"] or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     device = module.params["device"]
     namespace = module.params["namespace"]

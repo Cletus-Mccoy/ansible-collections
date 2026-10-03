@@ -1,19 +1,15 @@
-from ansible.plugins.connection import ConnectionBase
-from ansible.errors import AnsibleConnectionFailure
-from ansible.module_utils._text import to_text
-import subprocess
-import time
-import shutil
-
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 DOCUMENTATION = r'''
-connection: adb
+name: adb
 short_description: Execute Ansible tasks over Android Debug Bridge (ADB)
 description:
   - Connects to Android devices using adb shell commands.
   - Allows execution of commands and file transfer via push/pull.
 author:
-  - Kasper Daems
+  - Kasper Daems (@Cletus-Mccoy)
+version_added: '0.1.0'
 options:
   adb_command_timeout:
     description: Timeout (seconds) for individual adb commands.
@@ -28,6 +24,13 @@ options:
     vars:
       - name: ansible_adb_connect_retries
 '''
+
+from ansible.plugins.connection import ConnectionBase
+from ansible.errors import AnsibleConnectionFailure
+from ansible.module_utils._text import to_text
+import subprocess
+import time
+import shutil
 
 
 class Connection(ConnectionBase):
@@ -82,6 +85,7 @@ class Connection(ConnectionBase):
                     capture_output=True,
                     text=True,
                     timeout=timeout,
+                    check=False,
                 )
             except subprocess.TimeoutExpired as e:
                 last_exc = e

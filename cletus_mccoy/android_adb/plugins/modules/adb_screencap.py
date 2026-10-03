@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # (c) 2026 Kasper Daems
 # Ansible module to capture a screenshot from an Android device
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
@@ -20,18 +22,10 @@ options:
       - Controller-side path to write the PNG to.
     required: true
     type: path
-  device:
-    description:
-      - Device serial or C(IP:port) to target.
-    required: false
-    type: str
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
+  - Kasper Daems (@Cletus-Mccoy)
 version_added: '0.3.0'
 '''
 
@@ -57,9 +51,9 @@ size:
   type: int
 '''
 
-import shutil
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import (
     AdbError,
     run_adb_binary,
@@ -69,16 +63,13 @@ from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb impor
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            **adb_argument_spec(),
             dest=dict(type="path", required=True),
-            device=dict(type="str", required=False, default=None),
-            adb_path=dict(type="str", required=False, default=None),
         ),
         supports_check_mode=True,
     )
 
-    adb_path = module.params["adb_path"] or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     dest = module.params["dest"]
     device = module.params["device"]

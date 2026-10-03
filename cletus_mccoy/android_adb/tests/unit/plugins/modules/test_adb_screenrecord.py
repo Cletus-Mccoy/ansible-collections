@@ -1,10 +1,14 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from ansible_collections.cletus_mccoy.android_adb.plugins.modules import adb_screenrecord
+
 
 def test_module_doc():
     assert hasattr(adb_screenrecord, 'DOCUMENTATION')
     assert hasattr(adb_screenrecord, 'EXAMPLES')
     assert hasattr(adb_screenrecord, 'RETURN')
+
 
 def test_main_runs():
     class DummyModule:
@@ -15,9 +19,11 @@ def test_main_runs():
                 'device': None,
                 'adb_path': 'adb',
             }
+
         def exit_json(self, **kwargs):
             self.result = kwargs
             raise SystemExit
+
         def fail_json(self, **kwargs):
             self.result = kwargs
             raise SystemExit

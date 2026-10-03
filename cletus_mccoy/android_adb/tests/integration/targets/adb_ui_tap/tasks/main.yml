@@ -3,6 +3,14 @@
 # Side-effect-free: resolution is exercised in check mode (no real tap is sent),
 # plus a negative no-match assertion. The unit tests cover the 'input tap' wiring.
 
+- name: Wake the screen so the dump and the tap see the same UI (does not unlock)
+  cletus_mccoy.android_adb.adb_shell:
+    device: "{{ adb_device }}"
+    command: input keyevent KEYCODE_WAKEUP
+  # Best effort: Xiaomi/POCO refuse injected input unless "USB debugging
+  # (Security settings)" is enabled.
+  ignore_errors: true
+
 - name: Dump the UI to pick a real on-screen label
   cletus_mccoy.android_adb.adb_ui_dump:
     device: "{{ adb_device }}"

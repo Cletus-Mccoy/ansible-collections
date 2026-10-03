@@ -1,6 +1,9 @@
 # Unit test for adb_shell Ansible module
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_shell
+
 
 def test_adb_shell_runs(monkeypatch):
     def fake_run_adb_command(adb_path, args, device=None, timeout=30, server_port=None):

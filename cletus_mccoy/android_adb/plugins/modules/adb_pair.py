@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_pair
@@ -45,20 +48,11 @@ options:
     required: false
     type: int
     default: 15
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
-  adb_server_port:
-    description:
-      - Pair using a dedicated ADB server on this port (C(adb -P <port>)) instead
-        of the shared C(tcp:5037) server, for per-device isolation.
-    required: false
-    type: int
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb.server
 author:
-  - Kasper Daems
-version_added: '1.1.0'
+  - Kasper Daems (@Cletus-Mccoy)
+version_added: '0.1.0'
 '''  # noqa
 
 EXAMPLES = r'''
@@ -90,8 +84,8 @@ expired:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 import subprocess
-import shutil
 import time
 
 
@@ -114,21 +108,18 @@ def _looks_expired(text):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            **adb_argument_spec(device=False),
             ip=dict(type="str", required=True),
             port=dict(type="int", required=True),
             pairing_code=dict(type="str", required=False),
             retries=dict(type="int", required=False, default=2),
             retry_delay=dict(type="int", required=False, default=2),
             timeout=dict(type="int", required=False, default=15),
-            adb_path=dict(type="str", required=False, default=None),
-            adb_server_port=dict(type="int", required=False, default=None),
         ),
         supports_check_mode=False,
     )
 
-    adb_path = module.params.get("adb_path") or shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH", changed=False)
+    adb_path = resolve_adb(module)
 
     ip = module.params["ip"]
     port = module.params["port"]
@@ -151,9 +142,9 @@ def main():
         try:
             if pairing_code:
                 proc = subprocess.run(cmd, input=pairing_code + "\n",
-                                      capture_output=True, text=True, timeout=timeout)
+                                      capture_output=True, text=True, timeout=timeout, check=False)
             else:
-                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
         except subprocess.TimeoutExpired:
             last_out = "adb pair timed out after %ss" % timeout
             last_expired = True

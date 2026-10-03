@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_install
@@ -29,19 +32,11 @@ options:
         Without O(version), installation is skipped if the package is installed at all.
     required: false
     type: str
-  device:
-    description:
-      - Device serial or C(IP:port) to target.
-    required: false
-    type: str
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
-version_added: '1.2.0'
+  - Kasper Daems (@Cletus-Mccoy)
+version_added: '0.1.0'
 '''
 
 EXAMPLES = r'''
@@ -72,7 +67,7 @@ installed_version:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
-import shutil
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 
 
 def _installed_version(adb_path, package, device):
@@ -95,11 +90,10 @@ def _installed_version(adb_path, package, device):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            **adb_argument_spec(),
             apk_path=dict(type='str', required=True),
             package=dict(type='str', required=False, default=None),
             version=dict(type='str', required=False, default=None),
-            device=dict(type='str', required=False, default=None),
-            adb_path=dict(type='str', required=False, default=None),
         ),
         supports_check_mode=True,
     )
@@ -108,7 +102,7 @@ def main():
     package = module.params['package']
     version = module.params['version']
     device = module.params['device']
-    adb_path = module.params['adb_path'] or shutil.which('adb')
+    adb_path = resolve_adb(module)
     check_mode = getattr(module, 'check_mode', False)
 
     if not adb_path:
@@ -133,7 +127,7 @@ def main():
                 module.exit_json(
                     changed=False,
                     msg=f"{package} already installed"
-                        + (f" at version {current_version}" if current_version else ""),
+                    + (f" at version {current_version}" if current_version else ""),
                     installed_version=current_version,
                 )
 

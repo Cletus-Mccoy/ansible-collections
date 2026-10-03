@@ -1,4 +1,6 @@
-import pytest
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 from unittest.mock import patch
 from ansible_collections.cletus_mccoy.android_adb.plugins.modules import adb_settings
 

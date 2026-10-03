@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # (c) 2026 Kasper Daems
 # Ansible module to push/pull files to/from Android device using adb
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
@@ -28,20 +30,11 @@ options:
       - Destination path. For C(push), a path on the device; for C(pull), a path on the controller.
     required: true
     type: str
-  device:
-    description:
-      - Device serial or C(IP:port) to target.
-    required: false
-    type: str
-  adb_path:
-    description:
-      - Path to the C(adb) binary. Defaults to C(adb) resolved from PATH.
-    required: false
-    type: str
-    default: adb
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-  - Kasper Daems
-version_added: '1.0.0'
+  - Kasper Daems (@Cletus-Mccoy)
+version_added: '0.2.0'
 '''
 
 EXAMPLES = r'''
@@ -74,16 +67,17 @@ stdout:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_push, adb_pull, AdbError
 import os
 
+
 def main():
     module_args = dict(
+        **adb_argument_spec(),
         action=dict(type='str', required=True, choices=['push', 'pull']),
         src=dict(type='str', required=True),
         dest=dict(type='str', required=True),
-        device=dict(type='str', required=False, default=None),
-        adb_path=dict(type='str', required=False, default='adb'),
     )
 
     module = AnsibleModule(
@@ -95,7 +89,7 @@ def main():
     src = module.params['src']
     dest = module.params['dest']
     device = module.params['device']
-    adb_path = module.params['adb_path']
+    adb_path = resolve_adb(module)
 
     try:
         if action == 'push':
@@ -112,6 +106,7 @@ def main():
         module.fail_json(msg=str(e))
     except Exception as e:
         module.fail_json(msg='Unexpected error: %s' % str(e))
+
 
 if __name__ == '__main__':
     main()

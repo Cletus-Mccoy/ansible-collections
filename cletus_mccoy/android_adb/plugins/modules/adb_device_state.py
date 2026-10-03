@@ -1,24 +1,24 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: adb_device_state
 short_description: Manage Android device state over ADB
-version_added: '1.1.0'
+version_added: '0.1.0'
 description:
     - Reboot, shutdown, or change state of Android devices using ADB.
 options:
-    device:
-        description:
-            - Device serial or IP:port to target.
-        required: false
-        type: str
     state:
         description:
             - Desired device state.
         required: true
         type: str
         choices: [reboot, shutdown, recovery, bootloader]
+extends_documentation_fragment:
+  - cletus_mccoy.android_adb.adb
 author:
-    - Kasper Daems
+    - Kasper Daems (@Cletus-Mccoy)
 '''
 
 EXAMPLES = r'''
@@ -40,21 +40,20 @@ msg:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_argument_spec, resolve_adb
 from ansible_collections.cletus_mccoy.android_adb.plugins.module_utils.adb import adb_shell
-import shutil
+
 
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            device=dict(type="str", required=False),
+            **adb_argument_spec(),
             state=dict(type="str", required=True, choices=["reboot", "shutdown", "recovery", "bootloader"]),
         ),
         supports_check_mode=True
     )
 
-    adb_path = shutil.which("adb")
-    if not adb_path:
-        module.fail_json(msg="adb not found in PATH")
+    adb_path = resolve_adb(module)
 
     device = module.params.get("device")
     state = module.params["state"]
@@ -71,6 +70,7 @@ def main():
         module.exit_json(changed=True, msg=f"Device state changed: {state}")
     except Exception as e:
         module.fail_json(msg=str(e))
+
 
 if __name__ == '__main__':
     main()

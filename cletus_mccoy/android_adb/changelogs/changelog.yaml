@@ -1,0 +1,134 @@
+ancestor: null
+releases:
+  0.1.0:
+    changes:
+      release_summary: Initial release.
+    modules:
+      - description: Manage Android device configuration over ADB
+        name: adb_config
+        namespace: ''
+      - description: Connect to (or disconnect from) an Android device over ADB (wireless)
+        name: adb_connect
+        namespace: ''
+      - description: Gather Android device info over ADB
+        name: adb_device_info
+        namespace: ''
+      - description: Manage Android device state over ADB
+        name: adb_device_state
+        namespace: ''
+      - description: Manage ADB port forwards for an Android device
+        name: adb_forward
+        namespace: ''
+      - description: Install an APK on an Android device via ADB
+        name: adb_install
+        namespace: ''
+      - description: Send an Android intent over ADB
+        name: adb_intent
+        namespace: ''
+      - description: Fetch Android logcat output over ADB
+        name: adb_logcat
+        namespace: ''
+      - description: List installed Android packages over ADB
+        name: adb_packages
+        namespace: ''
+      - description: Pair with an Android device over ADB wirelessly
+        name: adb_pair
+        namespace: ''
+      - description: Reboot an Android device via ADB
+        name: adb_reboot
+        namespace: ''
+      - description: Record the screen of an Android device using ADB
+        name: adb_screenrecord
+        namespace: ''
+      - description: Uninstall an app from an Android device via ADB
+        name: adb_uninstall
+        namespace: ''
+    plugins:
+      connection:
+        - description: Execute Ansible tasks over Android Debug Bridge (ADB)
+          name: adb
+          namespace: null
+      inventory:
+        - description: Inventory source for Android devices reachable via ADB
+          name: adb_devices
+          namespace: null
+    release_date: '2026-05-03'
+  0.2.0:
+    changes:
+      release_summary: First deployment-ready release. Most modules are now idempotent.
+      minor_changes:
+        - adb_connect - idempotent; detects an existing connection and supports ``state=absent``.
+        - adb_install - idempotent via ``package``/``version``; skips the install when the version already matches.
+        - adb_uninstall - idempotent; checks ``pm list packages`` first.
+        - adb_reboot - new ``wait``/``wait_timeout`` options wait for ``sys.boot_completed``.
+        - adb_forward - idempotent (checks ``forward --list``); supports ``state=absent``.
+        - adb_intent - implemented ``am start``/``startservice``/``broadcast``.
+        - adb_config - idempotent ``set`` and new ``settings_delete`` action.
+        - adb_devices inventory plugin - implemented; parses ``adb devices -l`` and groups devices.
+        - adb connection plugin - timeouts, retries and error wrapping.
+        - New roles adb_bootstrap and android_config; settings_management now uses adb_settings instead of raw shell.
+    modules:
+      - description: Push or pull files to/from an Android device via ADB
+        name: adb_files
+        namespace: ''
+      - description: Manage Android Settings database values over ADB
+        name: adb_settings
+        namespace: ''
+      - description: Run an arbitrary command on an Android device via ADB shell
+        name: adb_shell
+        namespace: ''
+    release_date: '2026-06-10'
+  0.2.1:
+    changes:
+      bugfixes:
+        - android_probe role - restore the ``probe_include_system_apps`` default; bare runs failed with an undefined variable.
+        - app_management role - drop the invalid ``update`` argument and support ``{apk_path, package, version}`` items for idempotent installs.
+        - adb_files, adb_shell - add missing documentation that made Galaxy's import fail.
+        - adb_settings - correct the Settings DB permission note for Android 16 (``WRITE_SETTINGS`` is no longer granted to the shell).
+    release_date: '2026-06-10'
+  0.3.0:
+    changes:
+      minor_changes:
+        - adb_connect - new ``prune_offline`` option removes stale ``offline`` entries left behind by ``adb root``/``tcpip``.
+        - module_utils - shared ``ui.py`` helpers plus ``run_adb_binary`` and ``list_devices``.
+    modules:
+      - description: Set or remove a key in an Android app's shared_prefs XML (root)
+        name: adb_app_pref
+        namespace: ''
+      - description: Restart adbd as root (or non-root) and re-establish the connection
+        name: adb_root
+        namespace: ''
+      - description: Capture a screenshot from an Android device to the controller
+        name: adb_screencap
+        namespace: ''
+      - description: Dump the current UI view hierarchy from an Android device
+        name: adb_ui_dump
+        namespace: ''
+      - description: Tap a UI element by text/resource-id, or at raw coordinates
+        name: adb_ui_tap
+        namespace: ''
+    release_date: '2026-06-12'
+  0.4.0:
+    changes:
+      minor_changes:
+        - module_utils - every adb call now has a finite timeout (``AdbTimeout``) and a hung ADB server is detected and restarted.
+        - android_probe role - rebuilt on adb_facts; unreachable devices are skipped instead of failing the play.
+    modules:
+      - description: Gather Ansible facts from an Android device over ADB
+        name: adb_facts
+        namespace: ''
+    release_date: '2026-06-17'
+  0.4.1:
+    changes:
+      bugfixes:
+        - app_management role - ``bulk_update`` passes package/version to adb_install so devices already at the target version report ``changed=false``.
+        - policy_management role - rewritten onto valid, idempotent module calls; ``remote_wipe`` now requires ``policy_confirm_wipe=true``.
+    release_date: '2026-06-17'
+  0.5.0:
+    changes:
+      minor_changes:
+        - adb_facts, adb_connect, adb_shell, adb_pair - new ``adb_server_port`` option to use a dedicated ADB server per device.
+        - adb_pair - new ``retries``/``retry_delay``/``timeout``; an expired pairing dialog fails with ``expired=true`` and an actionable message.
+      bugfixes:
+        - adb_intent - errors that ``am`` prints to stderr while exiting 0 are now reported as failures.
+    release_date: '2026-06-17'
