@@ -36,3 +36,4 @@ build_ignore:
   - tests/output
   - tests/integration/integration_config.yml
   - .github
+  - changelogs/.plugin-cache.yaml

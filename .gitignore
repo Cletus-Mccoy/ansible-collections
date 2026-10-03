@@ -7,3 +7,5 @@ localcopy.txt
 __pycache__/
 *.pyc
 .pytest_cache/
+# antsibull-changelog cache
+changelogs/.plugin-cache.yaml
