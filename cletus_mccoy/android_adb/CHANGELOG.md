@@ -2,22 +2,25 @@
 
 **Topics**
 
-- <a href="#v0-5-0">v0\.5\.0</a>
+- <a href="#v0-6-0">v0\.6\.0</a>
     - <a href="#minor-changes">Minor Changes</a>
     - <a href="#bugfixes">Bugfixes</a>
-- <a href="#v0-4-1">v0\.4\.1</a>
-    - <a href="#bugfixes-1">Bugfixes</a>
-- <a href="#v0-4-0">v0\.4\.0</a>
+- <a href="#v0-5-0">v0\.5\.0</a>
     - <a href="#minor-changes-1">Minor Changes</a>
+    - <a href="#bugfixes-1">Bugfixes</a>
+- <a href="#v0-4-1">v0\.4\.1</a>
+    - <a href="#bugfixes-2">Bugfixes</a>
+- <a href="#v0-4-0">v0\.4\.0</a>
+    - <a href="#minor-changes-2">Minor Changes</a>
     - <a href="#new-modules">New Modules</a>
 - <a href="#v0-3-0">v0\.3\.0</a>
-    - <a href="#minor-changes-2">Minor Changes</a>
+    - <a href="#minor-changes-3">Minor Changes</a>
     - <a href="#new-modules-1">New Modules</a>
 - <a href="#v0-2-1">v0\.2\.1</a>
-    - <a href="#bugfixes-2">Bugfixes</a>
+    - <a href="#bugfixes-3">Bugfixes</a>
 - <a href="#v0-2-0">v0\.2\.0</a>
     - <a href="#release-summary">Release Summary</a>
-    - <a href="#minor-changes-3">Minor Changes</a>
+    - <a href="#minor-changes-4">Minor Changes</a>
     - <a href="#new-modules-2">New Modules</a>
 - <a href="#v0-1-0">v0\.1\.0</a>
     - <a href="#release-summary-1">Release Summary</a>
@@ -26,16 +29,36 @@
         - <a href="#inventory">Inventory</a>
     - <a href="#new-modules-3">New Modules</a>
 
+<a id="v0-6-0"></a>
+## v0\.6\.0
+
+<a id="minor-changes"></a>
+### Minor Changes
+
+* adb\_config\, adb\_device\_info\, adb\_device\_state\, adb\_packages \- now honour <code>adb\_path</code> instead of always using <code>adb</code> from <code>PATH</code>\.
+* all modules \- every module now accepts <code>device</code>\, <code>adb\_path</code> and <code>adb\_server\_port</code>\, so <code>module\_defaults</code> for <code>group/cletus\_mccoy\.android\_adb\.adb</code> no longer fails with \"Unsupported parameters\" on modules that lacked one of them\. <code>adb\_connect</code> and <code>adb\_pair</code> take <code>adb\_path</code>/<code>adb\_server\_port</code> only\.
+* collection \- <code>requires\_ansible</code> raised to <code>\>\=2\.16\.0</code>\, the oldest ansible\-core version that is tested\.
+
+<a id="bugfixes"></a>
+### Bugfixes
+
+* adb connection plugin \- fix documentation schema errors \(<code>name</code> key\, author format\)\.
+* adb\_config \- document the <code>settings\_\*</code> and <code>shell</code> actions and the <code>namespace</code>/<code>command</code> options\.
+* adb\_logcat \- remove a duplicated documentation block\.
+* collection \- fix the <code>repository</code> link on Galaxy and add <code>issues</code>/<code>documentation</code>/<code>homepage</code> links\.
+* collection \- published tarballs no longer include previous release tarballs\, <code>\_\_pycache\_\_</code> or the local <code>tests/integration/integration\_config\.yml</code>\.
+* modules \- correct <code>version\_added</code> values\; several modules claimed versions \(1\.0\.0 to 1\.4\.0\) that were never released\.
+
 <a id="v0-5-0"></a>
 ## v0\.5\.0
 
-<a id="minor-changes"></a>
+<a id="minor-changes-1"></a>
 ### Minor Changes
 
 * adb\_facts\, adb\_connect\, adb\_shell\, adb\_pair \- new <code>adb\_server\_port</code> option to use a dedicated ADB server per device\.
 * adb\_pair \- new <code>retries</code>/<code>retry\_delay</code>/<code>timeout</code>\; an expired pairing dialog fails with <code>expired\=true</code> and an actionable message\.
 
-<a id="bugfixes"></a>
+<a id="bugfixes-1"></a>
 ### Bugfixes
 
 * adb\_intent \- errors that <code>am</code> prints to stderr while exiting 0 are now reported as failures\.
@@ -43,7 +66,7 @@
 <a id="v0-4-1"></a>
 ## v0\.4\.1
 
-<a id="bugfixes-1"></a>
+<a id="bugfixes-2"></a>
 ### Bugfixes
 
 * app\_management role \- <code>bulk\_update</code> passes package/version to adb\_install so devices already at the target version report <code>changed\=false</code>\.
@@ -52,7 +75,7 @@
 <a id="v0-4-0"></a>
 ## v0\.4\.0
 
-<a id="minor-changes-1"></a>
+<a id="minor-changes-2"></a>
 ### Minor Changes
 
 * android\_probe role \- rebuilt on adb\_facts\; unreachable devices are skipped instead of failing the play\.
@@ -66,7 +89,7 @@
 <a id="v0-3-0"></a>
 ## v0\.3\.0
 
-<a id="minor-changes-2"></a>
+<a id="minor-changes-3"></a>
 ### Minor Changes
 
 * adb\_connect \- new <code>prune\_offline</code> option removes stale <code>offline</code> entries left behind by <code>adb root</code>/<code>tcpip</code>\.
@@ -84,7 +107,7 @@
 <a id="v0-2-1"></a>
 ## v0\.2\.1
 
-<a id="bugfixes-2"></a>
+<a id="bugfixes-3"></a>
 ### Bugfixes
 
 * adb\_files\, adb\_shell \- add missing documentation that made Galaxy\'s import fail\.
@@ -100,7 +123,7 @@
 
 First deployment\-ready release\. Most modules are now idempotent\.
 
-<a id="minor-changes-3"></a>
+<a id="minor-changes-4"></a>
 ### Minor Changes
 
 * New roles adb\_bootstrap and android\_config\; settings\_management now uses adb\_settings instead of raw shell\.

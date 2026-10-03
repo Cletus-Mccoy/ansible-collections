@@ -1,0 +1,134 @@
+objects: {}
+plugins:
+  become: {}
+  cache: {}
+  callback: {}
+  cliconf: {}
+  connection:
+    adb:
+      description: Execute Ansible tasks over Android Debug Bridge (ADB)
+      name: adb
+      version_added: 0.1.0
+  httpapi: {}
+  inventory:
+    adb_devices:
+      description: Inventory source for Android devices reachable via ADB
+      name: adb_devices
+      version_added: 0.1.0
+  lookup: {}
+  module:
+    adb_app_pref:
+      description: Set or remove a key in an Android app's shared_prefs XML (root)
+      name: adb_app_pref
+      namespace: ''
+      version_added: 0.3.0
+    adb_config:
+      description: Manage Android device configuration over ADB
+      name: adb_config
+      namespace: ''
+      version_added: 0.1.0
+    adb_connect:
+      description: Connect to (or disconnect from) an Android device over ADB (wireless)
+      name: adb_connect
+      namespace: ''
+      version_added: 0.1.0
+    adb_device_info:
+      description: Gather Android device info over ADB
+      name: adb_device_info
+      namespace: ''
+      version_added: 0.1.0
+    adb_device_state:
+      description: Manage Android device state over ADB
+      name: adb_device_state
+      namespace: ''
+      version_added: 0.1.0
+    adb_facts:
+      description: Gather Ansible facts from an Android device over ADB
+      name: adb_facts
+      namespace: ''
+      version_added: 0.4.0
+    adb_files:
+      description: Push or pull files to/from an Android device via ADB
+      name: adb_files
+      namespace: ''
+      version_added: 0.2.0
+    adb_forward:
+      description: Manage ADB port forwards for an Android device
+      name: adb_forward
+      namespace: ''
+      version_added: 0.1.0
+    adb_install:
+      description: Install an APK on an Android device via ADB
+      name: adb_install
+      namespace: ''
+      version_added: 0.1.0
+    adb_intent:
+      description: Send an Android intent over ADB
+      name: adb_intent
+      namespace: ''
+      version_added: 0.1.0
+    adb_logcat:
+      description: Fetch Android logcat output over ADB
+      name: adb_logcat
+      namespace: ''
+      version_added: 0.1.0
+    adb_packages:
+      description: List installed Android packages over ADB
+      name: adb_packages
+      namespace: ''
+      version_added: 0.1.0
+    adb_pair:
+      description: Pair with an Android device over ADB wirelessly
+      name: adb_pair
+      namespace: ''
+      version_added: 0.1.0
+    adb_reboot:
+      description: Reboot an Android device via ADB
+      name: adb_reboot
+      namespace: ''
+      version_added: 0.1.0
+    adb_root:
+      description: Restart adbd as root (or non-root) and re-establish the connection
+      name: adb_root
+      namespace: ''
+      version_added: 0.3.0
+    adb_screencap:
+      description: Capture a screenshot from an Android device to the controller
+      name: adb_screencap
+      namespace: ''
+      version_added: 0.3.0
+    adb_screenrecord:
+      description: Record the screen of an Android device using ADB
+      name: adb_screenrecord
+      namespace: ''
+      version_added: 0.1.0
+    adb_settings:
+      description: Manage Android Settings database values over ADB
+      name: adb_settings
+      namespace: ''
+      version_added: 0.2.0
+    adb_shell:
+      description: Run an arbitrary command on an Android device via ADB shell
+      name: adb_shell
+      namespace: ''
+      version_added: 0.2.0
+    adb_ui_dump:
+      description: Dump the current UI view hierarchy from an Android device
+      name: adb_ui_dump
+      namespace: ''
+      version_added: 0.3.0
+    adb_ui_tap:
+      description: Tap a UI element by text/resource-id, or at raw coordinates
+      name: adb_ui_tap
+      namespace: ''
+      version_added: 0.3.0
+    adb_uninstall:
+      description: Uninstall an app from an Android device via ADB
+      name: adb_uninstall
+      namespace: ''
+      version_added: 0.1.0
+  netconf: {}
+  shell: {}
+  strategy: {}
+  vars: {}
+version: 0.6.0
