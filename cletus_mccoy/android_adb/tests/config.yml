@@ -1,0 +1,6 @@
+---
+# ansible-test configuration. Modules run on the controller (they shell out to
+# adb), use f-strings and subprocess.run(capture_output=...), so Python 2 is not
+# supported.
+modules:
+  python_requires: '>=3.7'

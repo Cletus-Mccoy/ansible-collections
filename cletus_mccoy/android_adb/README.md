@@ -74,7 +74,7 @@ collections:
 - [policy_management](roles/policy_management/README.md): Apply device policies
 
 ## Requirements
-- ansible-core 2.16 or newer
+- ansible-core 2.16 or newer, Python 3.7+ on the controller
 - adb installed on controller
 - Android device with ADB enabled
 
